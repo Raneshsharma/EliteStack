@@ -630,3 +630,13 @@ def ats_score_page(request, resume_id):
         'resume': resume,
         'tier': current_tier,
     })
+
+
+@login_required
+def salary_calculator_page(request):
+    """Salary Calculator page — no resume needed."""
+    tier = getattr(request.user, 'profile', None)
+    current_tier = tier.subscription_tier if tier else 'free'
+    return render(request, 'resumes/salary_calculator.html', {
+        'tier': current_tier,
+    })

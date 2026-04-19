@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% block title %}Salary Calculator{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-8 px-4">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Salary Calculator</h1>
+        <p class="text-gray-500 text-sm mt-1">Get salary estimates for any job title and location</p>
+    </div>
+
+    <!-- Free tier banner -->
+    {% if tier == 'free' %}
+    <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
+        <span class="text-xl">⭐</span>
+        <div>
+            <p class="font-medium text-amber-800">Upgrade to Pro or Premium to see full salary ranges.</p>
+            <a href="/#pricing" class="text-sm text-amber-700 underline">View Plans →</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Calculator Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Enter Job Details</h2>
+        <form id="salary-form">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                    <input type="text" id="title-input" list="title-suggestions"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="e.g., Software Engineer" autocomplete="off" required>
+                    <datalist id="title-suggestions"></datalist>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Experience Level</label>
+                    <select id="level-input"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="entry">Entry Level (0-2 years)</option>
+                        <option value="mid" selected>Mid Level (2-5 years)</option>
+                        <option value="senior">Senior (5-10 years)</option>
+                        <option value="lead">Lead / Manager (10+ years)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Location <span class="text-gray-400">(city or state)</span>
+                </label>
+                <input type="text" id="location-input"
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="e.g., San Francisco, CA" autocomplete="off">
+                <p class="text-xs text-gray-400 mt-1">Leave blank for national average</p>
+            </div>
+            <button type="submit" id="calc-btn"
+                    class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                Calculate Salary Range
+            </button>
+        </form>
+    </div>
+
+    <!-- Results -->
+    <div id="salary-result" class="hidden space-y-4 mb-6">
+        <!-- Salary Range Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">Salary Range</h2>
+                <span id="salary-location" class="text-sm text-gray-500"></span>
+            </div>
+
+            <!-- Free tier: just median -->
+            {% if tier == 'free' %}
+            <div class="text-center py-4">
+                <p class="text-sm text-gray-500 mb-2">Median Salary</p>
+                <p id="salary-median" class="text-4xl font-bold text-gray-800">$0</p>
+            </div>
+            <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 text-center">
+                Upgrade to Pro or Premium to see the full salary range (min and max)
+            </div>
+            {% else %}
+            <!-- Full range -->
+            <div class="grid grid-cols-3 gap-4 text-center mb-4">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Low (25th %ile)</p>
+                    <p id="salary-min" class="text-2xl font-bold text-gray-600">$0</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Median (50th %ile)</p>
+                    <p id="salary-median" class="text-3xl font-bold text-blue-600">$0</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">High (75th %ile)</p>
+                    <p id="salary-max" class="text-2xl font-bold text-green-600">$0</p>
+                </div>
+            </div>
+            {% if salary.location != "United States" %}
+            <p id="salary-coli-note" class="text-xs text-gray-400 text-center"></p>
+            {% endif %}
+            {% endif %}
+        </div>
+
+        <!-- Offer Comparison -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Compare Your Offer</h2>
+            <div class="flex gap-3 mb-4">
+                <input type="number" id="offer-input" min="0"
+                       class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Enter your salary offer (e.g., 95000)">
+                <button type="button" id="compare-btn"
+                        class="px-6 py-2.5 bg-gray-800 text-white font-medium rounded-lg hover:bg-gray-900 text-sm">
+                    Compare
+                </button>
+            </div>
+            <div id="offer-result" class="hidden">
+                <div id="offer-badge" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold mb-3"></div>
+                <p id="offer-message" class="text-sm text-gray-600 mb-3"></p>
+                <p id="offer-gap" class="text-xs text-gray-400 mb-3"></p>
+            </div>
+        </div>
+
+        <!-- Negotiation Tips -->
+        <div id="negotiation-tips" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Negotiation Tips</h2>
+            <ul id="tips-list" class="space-y-3"></ul>
+        </div>
+    </div>
+
+    <!-- Not Found -->
+    <div id="salary-not-found" class="hidden p-4 bg-amber-50 border border-amber-200 rounded-lg">
+        <p class="text-amber-700 text-sm" id="not-found-message"></p>
+    </div>
+
+    <!-- Error -->
+    <div id="salary-error" class="hidden p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-red-700 text-sm" id="salary-error-text"></p>
+    </div>
+</div>
+
+<script>
+(function() {
+    var form = document.getElementById('salary-form');
+    var calcBtn = document.getElementById('calc-btn');
+    var compareBtn = document.getElementById('compare-btn');
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    var tierFree = {% if tier == 'free' %}true{% else %}false{% endif %};
+
+    // Load title suggestions
+    fetch('/api/salary/titles/')
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+            var datalist = document.getElementById('title-suggestions');
+            (data.titles || []).forEach(function(t){
+                var opt = document.createElement('option');
+                opt.value = t;
+                datalist.appendChild(opt);
+            });
+        });
+
+    function formatCurrency(n) {
+        if (!n) return '$0';
+        if (n >= 1000) {
+            return '$' + Math.round(n / 1000) + 'k';
+        }
+        return '$' + n.toLocaleString();
+    }
+    function formatCurrencyFull(n) {
+        if (!n) return '$0';
+        return '$' + n.toLocaleString();
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var title = document.getElementById('title-input').value.trim();
+        var level = document.getElementById('level-input').value;
+        var location = document.getElementById('location-input').value.trim();
+        if (!title) return;
+
+        calcBtn.disabled = true;
+        calcBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Calculating...';
+
+        fetch('/api/salary/calculate/?title=' + encodeURIComponent(title) + '&level=' + level + '&location=' + encodeURIComponent(location), {
+            method: 'GET',
+            headers: {'X-CSRFToken': csrfToken}
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+            calcBtn.disabled = false;
+            calcBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg> Calculate Salary Range';
+
+            document.getElementById('salary-not-found').classList.add('hidden');
+            document.getElementById('salary-error').classList.add('hidden');
+
+            if (data.error === 'not_found') {
+                document.getElementById('not-found-message').textContent = data.message || 'Salary data not available for this title.';
+                document.getElementById('salary-not-found').classList.remove('hidden');
+                return;
+            }
+
+            // Show results
+            document.getElementById('salary-result').classList.remove('hidden');
+
+            if (!tierFree) {
+                document.getElementById('salary-min').textContent = formatCurrency(data.min);
+                document.getElementById('salary-max').textContent = formatCurrency(data.max);
+            }
+            document.getElementById('salary-median').textContent = formatCurrency(data.median);
+            document.getElementById('salary-location').textContent = data.location || '';
+            document.getElementById('offer-result').classList.add('hidden');
+            document.getElementById('negotiation-tips').classList.add('hidden');
+
+            // COLI note
+            var coliNote = document.getElementById('salary-coli-note');
+            if (coliNote && data.coli && data.coli !== 100) {
+                coliNote.textContent = 'Cost of living adjusted for ' + data.location + ' (COLI index: ' + data.coli + ' vs NYC base of 100)';
+                coliNote.classList.remove('hidden');
+            }
+        })
+        .catch(function() {
+            calcBtn.disabled = false;
+            calcBtn.innerHTML = 'Calculate Salary Range';
+            document.getElementById('salary-error-text').textContent = 'Failed to calculate salary. Please try again.';
+            document.getElementById('salary-error').classList.remove('hidden');
+        });
+    });
+
+    // Compare offer
+    compareBtn.addEventListener('click', function() {
+        var offer = document.getElementById('offer-input').value;
+        var title = document.getElementById('title-input').value.trim();
+        var level = document.getElementById('level-input').value;
+        var location = document.getElementById('location-input').value.trim();
+        if (!offer || !title) return;
+
+        compareBtn.disabled = true;
+        fetch('/api/salary/offer/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({
+                title: title,
+                level: level,
+                location: location,
+                offer: parseFloat(offer)
+            })
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+            compareBtn.disabled = false;
+            if (data.error) return;
+            showOfferResult(data);
+        })
+        .catch(function() {
+            compareBtn.disabled = false;
+        });
+    });
+
+    function showOfferResult(data) {
+        var resultDiv = document.getElementById('offer-result');
+        resultDiv.classList.remove('hidden');
+
+        var badge = document.getElementById('offer-badge');
+        var colorMap = { well_below: 'bg-red-100 text-red-700', below: 'bg-orange-100 text-orange-700',
+                         at_market: 'bg-green-100 text-green-700', above: 'bg-blue-100 text-blue-700',
+                         well_above: 'bg-purple-100 text-purple-700' };
+        badge.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ' + (colorMap[data.assessment] || 'bg-gray-100 text-gray-700');
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full ' +
+            (data.color === 'red' ? 'bg-red-500' : data.color === 'orange' ? 'bg-orange-500' :
+             data.color === 'green' ? 'bg-green-500' : data.color === 'blue' ? 'bg-blue-500' : 'bg-purple-500') +
+            '"></span>' + data.label;
+
+        document.getElementById('offer-message').textContent = data.label + ' — ' + data.salary_data.title;
+        document.getElementById('offer-gap').textContent =
+            'Offer: ' + formatCurrencyFull(data.salary_data.median) + ' median. Your offer is ' +
+            (data.gap_percent >= 0 ? '+' : '') + data.gap_percent + '% vs median.';
+
+        // Negotiation tips
+        var tipsDiv = document.getElementById('negotiation-tips');
+        var tipsList = document.getElementById('tips-list');
+        tipsList.innerHTML = '';
+        (data.tips || []).forEach(function(tip) {
+            var li = document.createElement('li');
+            li.className = 'flex items-start gap-2';
+            li.innerHTML = '<span class="text-blue-500 mt-0.5">→</span><span class="text-sm text-gray-700">' + escapeHtml(tip) + '</span>';
+            tipsList.appendChild(li);
+        });
+        if (data.tips && data.tips.length > 0) {
+            tipsDiv.classList.remove('hidden');
+        }
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+})();
+</script>
+{% endblock %}

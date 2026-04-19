@@ -8,8 +8,11 @@ from django.http import HttpResponse
 from .models import Resume, CoverLetter, ChatMessage
 from .serializers import ResumeSerializer
 from ai.services import generate_resume_rewrites, generate_cover_letter, generate_job_match, analyze_ats_score, chat_with_assistant
-from ai.rate_limiter import record_ats, record_chat, get_chat_remaining
-from ai.rate_limiter import get_rewrite_remaining, record_rewrite, get_coverletter_remaining, record_coverletter
+from ai.rate_limiter import (
+    record_ats, record_chat, get_rewrite_remaining, record_rewrite,
+    get_coverletter_remaining, record_coverletter, get_chat_remaining,
+)
+from ai.salary_data import calculate_salary, get_offer_assessment, get_all_titles
 
 
 class ResumeRewriteView(APIView):
@@ -386,3 +389,80 @@ class ChatView(APIView):
             'conversation_id': conversation_id,
             'remaining': remaining,
         })
+
+
+class SalaryCalculatorView(APIView):
+    """GET /api/salary/calculate/ — salary estimates by title, level, location."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        profile = getattr(request.user, 'profile', None)
+        tier = profile.subscription_tier if profile else 'free'
+
+        title = request.query_params.get('title', '').strip()
+        level = request.query_params.get('level', 'mid').strip().lower()
+        location = request.query_params.get('location', '').strip()
+
+        if not title:
+            return Response(
+                {'error': 'validation_error', 'message': 'Job title is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if level not in ('entry', 'mid', 'senior', 'lead'):
+            level = 'mid'
+
+        salary_data = calculate_salary(title, level, location)
+        if 'error' in salary_data:
+            return Response(salary_data, status=status.HTTP_404_NOT_FOUND)
+
+        # Free tier: only show median (hide min/max)
+        if tier == 'free':
+            salary_data = {
+                'title': salary_data['title'],
+                'level': salary_data['level'],
+                'location': salary_data['location'],
+                'currency': salary_data['currency'],
+                'median': salary_data['median'],
+                'limited': True,
+                'message': 'Upgrade to Pro or Premium to see full salary ranges.',
+            }
+
+        return Response(salary_data)
+
+
+class SalaryOfferView(APIView):
+    """POST /api/salary/offer/ — compare an offer against market data."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        title = request.data.get('title', '').strip()
+        level = request.data.get('level', 'mid').strip().lower()
+        location = request.data.get('location', '').strip()
+        offer = request.data.get('offer')
+
+        if not title:
+            return Response({'error': 'validation_error', 'message': 'Job title is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if offer is None:
+            return Response({'error': 'validation_error', 'message': 'Offer amount is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            offer = int(float(offer))
+            if offer < 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            return Response({'error': 'validation_error', 'message': 'Offer must be a positive number.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        salary_data = calculate_salary(title, level, location)
+        if 'error' in salary_data:
+            return Response(salary_data, status=status.HTTP_404_NOT_FOUND)
+
+        assessment = get_offer_assessment(offer, salary_data)
+        assessment['salary_data'] = salary_data
+        return Response(assessment)
+
+
+class SalaryTitlesView(APIView):
+    """GET /api/salary/titles/ — return all supported job titles for autocomplete."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, _request):
+        return Response({'titles': get_all_titles()})
