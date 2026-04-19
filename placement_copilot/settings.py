@@ -14,7 +14,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
-if not SECRET_KEY:
+# Allow placeholder during Docker build, enforce real key at runtime
+_is_production = os.getenv('DEBUG', 'True').lower() != 'true'
+if _is_production and (not SECRET_KEY or 'placeholder' in SECRET_KEY):
     raise ValueError("SECRET_KEY environment variable is required")
 
 # SECURITY WARNING: don't run with debug turned on in production!
