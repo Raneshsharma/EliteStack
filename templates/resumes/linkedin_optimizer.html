@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+{% block title %}LinkedIn Optimizer{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-8 px-4">
+    <div class="flex items-center gap-3 mb-6">
+        {% if resume %}
+        <a href="{% url 'resume_update' resume.id %}" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </a>
+        {% endif %}
+        <h1 class="text-2xl font-bold text-gray-900">LinkedIn Optimizer</h1>
+    </div>
+
+    {% if tier == 'free' %}
+    <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
+        <span class="text-xl">⭐</span>
+        <div>
+            <p class="font-medium text-amber-800">LinkedIn Optimizer is a Pro/Premium feature.</p>
+            <a href="/#pricing" class="text-sm text-amber-700 underline">View Plans →</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Input Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Optimize Your Profile</h2>
+        <form id="li-form">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Target Job Title</label>
+                <input id="job-title" type="text"
+                       class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="e.g., Senior Frontend Engineer">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Target Industry <span class="text-gray-400">(optional)</span></label>
+                <input id="target-industry" type="text"
+                       class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="e.g., FinTech, Healthcare, E-commerce">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Current Headline</label>
+                <input id="headline" type="text"
+                       class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Copy-paste your LinkedIn headline">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">About / Summary</label>
+                <textarea id="summary" rows="5"
+                          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Copy-paste your About section..."></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Experience <span class="text-gray-400">(optional — paste your bullet points)</span></label>
+                <textarea id="experience" rows="4"
+                          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Paste your experience entries..."></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Skills <span class="text-gray-400">(comma-separated)</span></label>
+                <input id="skills" type="text"
+                       class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Python, React, SQL, AWS...">
+            </div>
+
+            <button type="submit" id="li-btn"
+                    class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 {% if tier == 'free' %}opacity-50 cursor-not-allowed{% endif %}"
+                    {% if tier == 'free' %}disabled{% endif %}>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Optimize My Profile
+            </button>
+        </form>
+    </div>
+
+    <!-- Loading -->
+    <div id="li-loading" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+        <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
+        <p class="text-gray-600">Analyzing your LinkedIn profile...</p>
+    </div>
+
+    <!-- Results -->
+    <div id="li-result" class="hidden space-y-4">
+        <!-- Overall Score -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+            <p class="text-sm font-medium text-gray-500 mb-2">Overall Profile Score</p>
+            <div class="relative inline-flex items-center justify-center w-32 h-32 mb-3">
+                <svg class="w-32 h-32 transform -rotate-90">
+                    <circle cx="64" cy="64" r="56" stroke="#e5e7eb" stroke-width="10" fill="none"/>
+                    <circle id="li-ring" cx="64" cy="64" r="56" stroke="#3b82f6" stroke-width="10" fill="none"
+                            stroke-linecap="round" stroke-dasharray="352" stroke-dashoffset="352"
+                            style="transition: stroke-dashoffset 1s ease-out"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <span id="li-score" class="text-3xl font-bold text-blue-600">0</span>
+                </div>
+            </div>
+            <p id="li-top-priority" class="text-sm font-medium text-amber-600"></p>
+        </div>
+
+        <!-- Headline -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold text-gray-900">Headline</h3>
+                <span id="headline-score" class="text-lg font-bold text-blue-600">0/100</span>
+            </div>
+            <div id="headline-suggestion" class="hidden mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p class="text-xs font-medium text-green-700 mb-1">Suggested Improvement</p>
+                <p id="headline-suggestion-text" class="text-sm text-green-800"></p>
+            </div>
+            <ul id="headline-tips" class="space-y-2"></ul>
+        </div>
+
+        <!-- Summary -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold text-gray-900">About / Summary</h3>
+                <span id="summary-score" class="text-lg font-bold text-purple-600">0/100</span>
+            </div>
+            <div id="summary-suggestion" class="hidden mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p class="text-xs font-medium text-green-700 mb-1">Suggested Opening</p>
+                <p id="summary-suggestion-text" class="text-sm text-green-800"></p>
+            </div>
+            <ul id="summary-tips" class="space-y-2"></ul>
+        </div>
+
+        <!-- Experience -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold text-gray-900">Experience</h3>
+                <span id="exp-score" class="text-lg font-bold text-green-600">0/100</span>
+            </div>
+            <ul id="exp-tips" class="space-y-2"></ul>
+        </div>
+
+        <!-- Skills -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h3 class="font-semibold text-gray-900 mb-3">Skills to Add</h3>
+            <div id="skills-suggestions" class="flex flex-wrap gap-2"></div>
+        </div>
+    </div>
+
+    <!-- Error -->
+    <div id="li-error" class="hidden p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p id="li-error-text" class="text-red-700 text-sm"></p>
+    </div>
+</div>
+
+<script>
+(function() {
+    var form = document.getElementById('li-form');
+    var loadingDiv = document.getElementById('li-loading');
+    var resultDiv = document.getElementById('li-result');
+    var errorDiv = document.getElementById('li-error');
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    var resumeId = {{ resume.id|default:'null' }};
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var headline = document.getElementById('headline').value.trim();
+        var summary = document.getElementById('summary').value.trim();
+        if (!headline && !summary) {
+            alert('Please enter your headline or summary.');
+            return;
+        }
+
+        form.classList.add('hidden');
+        loadingDiv.classList.remove('hidden');
+        resultDiv.classList.add('hidden');
+        errorDiv.classList.add('hidden');
+
+        var payload = {
+            job_title: document.getElementById('job-title').value.trim(),
+            target_industry: document.getElementById('target-industry').value.trim(),
+            headline: headline,
+            summary: summary,
+            experience: document.getElementById('experience').value.trim(),
+            skills: document.getElementById('skills').value.trim(),
+        };
+        if (resumeId) payload.resume_id = resumeId;
+
+        fetch('/api/linkedin/optimize/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            loadingDiv.classList.add('hidden');
+            if (resp.error === 'upgrade_required') {
+                form.classList.remove('hidden');
+                alert('This feature requires a Pro or Premium subscription.');
+                window.location.href = '/#pricing';
+                return;
+            }
+            if (resp.error) {
+                errorDiv.classList.remove('hidden');
+                document.getElementById('li-error-text').textContent = resp.message || resp.error;
+                form.classList.remove('hidden');
+                return;
+            }
+            showResult(resp);
+            resultDiv.classList.remove('hidden');
+            form.classList.remove('hidden');
+        })
+        .catch(function() {
+            loadingDiv.classList.add('hidden');
+            errorDiv.classList.remove('hidden');
+            document.getElementById('li-error-text').textContent = 'Failed to optimize. Please try again.';
+            form.classList.remove('hidden');
+        });
+    });
+
+    function showResult(data) {
+        var score = data.overall_score || 0;
+        document.getElementById('li-score').textContent = score;
+
+        var ring = document.getElementById('li-ring');
+        var circumference = 2 * Math.PI * 56;
+        ring.style.strokeDashoffset = circumference - (score / 100) * circumference;
+        ring.style.stroke = score >= 75 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#ef4444';
+        document.getElementById('li-score').style.color = ring.style.stroke;
+
+        var topPriority = document.getElementById('li-top-priority');
+        if (data.top_priority) {
+            topPriority.textContent = 'Top Priority: ' + data.top_priority;
+        }
+
+        buildScoreCard('headline', data.headline_score, data.headline_tips, 'headline-suggestion', data.headline_suggestion);
+        buildScoreCard('summary', data.summary_score, data.summary_tips, 'summary-suggestion', data.summary_suggestion);
+        buildScoreCard('exp', data.experience_score, data.experience_tips);
+
+        var skillsEl = document.getElementById('skills-suggestions');
+        skillsEl.innerHTML = '';
+        (data.skills_suggestions || []).forEach(function(skill) {
+            var span = document.createElement('span');
+            span.className = 'px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium';
+            span.textContent = skill;
+            skillsEl.appendChild(span);
+        });
+        if ((data.skills_suggestions || []).length === 0) {
+            var p = document.createElement('p');
+            p.className = 'text-sm text-gray-400';
+            p.textContent = 'No additional skills suggestions.';
+            skillsEl.appendChild(p);
+        }
+    }
+
+    function buildScoreCard(prefix, score, tips, suggestionId, suggestionText) {
+        var scoreEl = document.getElementById(prefix + '-score');
+        if (scoreEl) scoreEl.textContent = (score || 0) + '/100';
+
+        var suggestionEl = suggestionId ? document.getElementById(suggestionId) : null;
+        var suggestionTextEl = suggestionId ? document.getElementById(suggestionId + '-text') : null;
+        if (suggestionEl && suggestionTextEl) {
+            if (suggestionText) {
+                suggestionTextEl.textContent = suggestionText;
+                suggestionEl.classList.remove('hidden');
+            } else {
+                suggestionEl.classList.add('hidden');
+            }
+        }
+
+        var tipsEl = document.getElementById(prefix + '-tips');
+        tipsEl.innerHTML = '';
+        (tips || []).forEach(function(tip) {
+            var li = document.createElement('li');
+            li.className = 'flex items-start gap-2 text-sm text-gray-700';
+            li.innerHTML = '<span class="text-blue-500 mt-0.5 flex-shrink-0">→</span> ' + escapeHtml(tip);
+            tipsEl.appendChild(li);
+        });
+        if ((tips || []).length === 0) {
+            var li0 = document.createElement('li');
+            li0.className = 'text-sm text-gray-400';
+            li0.textContent = 'No specific tips.';
+            tipsEl.appendChild(li0);
+        }
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+})();
+</script>
+{% endblock %}

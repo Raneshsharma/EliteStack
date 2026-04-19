@@ -7,11 +7,13 @@ from django.conf import settings
 from django.http import HttpResponse
 from .models import Resume, CoverLetter, ChatMessage
 from .serializers import ResumeSerializer
-from ai.services import generate_resume_rewrites, generate_cover_letter, generate_job_match, analyze_ats_score, chat_with_assistant, generate_interview_questions
+from ai.services import generate_resume_rewrites, generate_cover_letter, generate_job_match, analyze_ats_score, chat_with_assistant, generate_interview_questions, generate_email_template, optimize_linkedin_profile
 from ai.rate_limiter import (
     record_ats, record_chat, get_rewrite_remaining, record_rewrite,
     get_coverletter_remaining, record_coverletter, get_chat_remaining,
     get_interview_remaining, record_interview,
+    get_email_remaining, record_email,
+    get_linkedin_remaining, record_linkedin,
 )
 from ai.salary_data import calculate_salary, get_offer_assessment, get_all_titles
 
@@ -525,4 +527,148 @@ class InterviewPrepView(APIView):
         return Response({
             'questions': questions,
             'remaining': get_interview_remaining(request.user.id, daily_limit),
+        })
+
+
+class EmailTemplateView(APIView):
+    """POST /api/email-template/generate/ — generate a professional email."""
+    permission_classes = [IsAuthenticated]
+
+    EMAIL_TYPES = ['thank_you', 'follow_up', 'interest', 'introduction', 'request']
+
+    def post(self, request):
+        profile = getattr(request.user, 'profile', None)
+        tier = profile.subscription_tier if profile else 'free'
+        daily_limit = settings.EMAIL_TEMPLATE_RATE_LIMITS.get(tier, 0)
+
+        if daily_limit == 0:
+            return Response(
+                {'error': 'upgrade_required', 'message': 'Upgrade to Pro or Premium to use Email Templates.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        email_type = request.data.get('email_type', '').strip()
+        recipient_name = request.data.get('recipient_name', '').strip()
+        job_title = request.data.get('job_title', '').strip()
+        company_name = request.data.get('company_name', '').strip()
+
+        if not email_type or email_type not in self.EMAIL_TYPES:
+            return Response(
+                {'error': 'validation_error', 'message': f'email_type must be one of: {", ".join(self.EMAIL_TYPES)}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not recipient_name:
+            return Response(
+                {'error': 'validation_error', 'message': 'recipient_name is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        remaining = get_email_remaining(request.user.id, daily_limit)
+        if remaining <= 0:
+            return Response(
+                {'error': 'rate_limit', 'message': 'Daily Email Templates limit reached.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        resume_data = ""
+        resume_id = request.data.get('resume_id')
+        if resume_id:
+            resume = Resume.objects.filter(user=request.user, id=resume_id).first()
+            if resume:
+                resume_data = serialize_resume_text(resume)
+
+        try:
+            body = generate_email_template(
+                resume_data=resume_data,
+                email_type=email_type,
+                recipient_name=recipient_name,
+                job_title=job_title,
+                company_name=company_name,
+                custom_notes=request.data.get('custom_notes', '').strip(),
+            )
+        except Exception as e:
+            import logging
+            logging.error(f"Email template failed for user {request.user.id}: {e}")
+            return Response(
+                {'error': 'Failed to generate email. Please try again.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        record_email(request.user.id, daily_limit)
+        return Response({
+            'body': body,
+            'email_type': email_type,
+            'recipient_name': recipient_name,
+            'remaining': get_email_remaining(request.user.id, daily_limit),
+        })
+
+
+class LinkedInOptimizeView(APIView):
+    """POST /api/linkedin/optimize/ — analyze and optimize a LinkedIn profile."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        profile = getattr(request.user, 'profile', None)
+        tier = profile.subscription_tier if profile else 'free'
+        daily_limit = settings.LINKEDIN_OPTIMIZE_RATE_LIMITS.get(tier, 0)
+
+        if daily_limit == 0:
+            return Response(
+                {'error': 'upgrade_required', 'message': 'Upgrade to Pro or Premium to use LinkedIn Optimizer.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        headline = request.data.get('headline', '').strip()
+        summary = request.data.get('summary', '').strip()
+
+        if not headline and not summary:
+            return Response(
+                {'error': 'validation_error', 'message': 'headline or summary is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        remaining = get_linkedin_remaining(request.user.id, daily_limit)
+        if remaining <= 0:
+            return Response(
+                {'error': 'rate_limit', 'message': 'Daily LinkedIn Optimizer limit reached.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        resume_data = ""
+        resume_id = request.data.get('resume_id')
+        if resume_id:
+            resume = Resume.objects.filter(user=request.user, id=resume_id).first()
+            if resume:
+                resume_data = serialize_resume_text(resume)
+
+        # Build experience string from resume or manual input
+        experience_items = request.data.get('experience', '').strip()
+        if not experience_items and resume_data:
+            experience_items = resume_data
+
+        skills = request.data.get('skills', '').strip()
+        job_title = request.data.get('job_title', '').strip()
+        target_industry = request.data.get('target_industry', '').strip()
+
+        try:
+            result = optimize_linkedin_profile(
+                headline=headline,
+                summary=summary,
+                experience_items=experience_items,
+                skills=skills,
+                job_title=job_title,
+                target_industry=target_industry,
+            )
+        except Exception as e:
+            import logging
+            logging.error(f"LinkedIn optimize failed for user {request.user.id}: {e}")
+            return Response(
+                {'error': 'Failed to optimize profile. Please try again.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        record_linkedin(request.user.id, daily_limit)
+        return Response({
+            **result,
+            'remaining': get_linkedin_remaining(request.user.id, daily_limit),
         })

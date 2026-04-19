@@ -1561,3 +1561,177 @@ class InterviewPrepAPITests(TestCase):
                 format='json'
             )
         self.assertEqual(response.status_code, 200)
+
+
+class EmailTemplateAPITests(TestCase):
+    """Tests for Email Template API."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user('testuser', 'test@example.com', 'testpass123')
+        self.client.login(username='testuser', password='testpass123')
+        self.resume = Resume.objects.create(user=self.user, title='Test Resume')
+
+    def test_email_template_requires_auth(self):
+        """Unauthenticated POST returns 401/403."""
+        self.client.logout()
+        response = self.client.post(
+            '/api/email-template/generate/',
+            {'email_type': 'thank_you', 'recipient_name': 'Jane Smith'},
+            format='json'
+        )
+        self.assertIn(response.status_code, [401, 403])
+
+    def test_email_template_free_tier_gated(self):
+        """Free tier returns 403 with upgrade_required error."""
+        response = self.client.post(
+            '/api/email-template/generate/',
+            {'email_type': 'thank_you', 'recipient_name': 'Jane Smith'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['error'], 'upgrade_required')
+
+    def test_email_template_missing_recipient(self):
+        """Missing recipient_name returns 400."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        response = self.client.post(
+            '/api/email-template/generate/',
+            {'email_type': 'thank_you'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['error'], 'validation_error')
+
+    def test_email_template_invalid_type(self):
+        """Invalid email_type returns 400."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        response = self.client.post(
+            '/api/email-template/generate/',
+            {'email_type': 'invalid', 'recipient_name': 'Jane'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('validation_error', response.json()['error'])
+
+    def test_email_template_generates_body(self):
+        """Returns body when generation succeeds."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        import unittest.mock as mock
+        with mock.patch('resumes.ai_views.generate_email_template', return_value='Thank you for your time.'):
+            response = self.client.post(
+                '/api/email-template/generate/',
+                {'email_type': 'thank_you', 'recipient_name': 'Jane Smith'},
+                format='json'
+            )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['body'], 'Thank you for your time.')
+        self.assertIn('remaining', data)
+
+    def test_email_template_rate_limit(self):
+        """Returns 429 when daily limit is exhausted."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        from ai.rate_limiter import _email_counts
+        from datetime import datetime, timedelta, timezone
+        uid = self.user.id
+        _email_counts[uid] = [(20, datetime.now(timezone.utc) + timedelta(hours=24))]
+        response = self.client.post(
+            '/api/email-template/generate/',
+            {'email_type': 'follow_up', 'recipient_name': 'Jane'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.json()['error'], 'rate_limit')
+
+
+class LinkedInOptimizeAPITests(TestCase):
+    """Tests for LinkedIn Optimizer API."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user('testuser', 'test@example.com', 'testpass123')
+        self.client.login(username='testuser', password='testpass123')
+        self.resume = Resume.objects.create(user=self.user, title='Test Resume')
+
+    def test_linkedin_requires_auth(self):
+        """Unauthenticated POST returns 401/403."""
+        self.client.logout()
+        response = self.client.post(
+            '/api/linkedin/optimize/',
+            {'headline': 'Software Engineer'},
+            format='json'
+        )
+        self.assertIn(response.status_code, [401, 403])
+
+    def test_linkedin_free_tier_gated(self):
+        """Free tier returns 403 with upgrade_required error."""
+        response = self.client.post(
+            '/api/linkedin/optimize/',
+            {'headline': 'Software Engineer'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['error'], 'upgrade_required')
+
+    def test_linkedin_missing_fields(self):
+        """Neither headline nor summary returns 400."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        response = self.client.post(
+            '/api/linkedin/optimize/',
+            {},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('validation_error', response.json()['error'])
+
+    def test_linkedin_generates_optimization(self):
+        """Returns optimization data when generation succeeds."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        import unittest.mock as mock
+        mock_result = {
+            'overall_score': 72,
+            'headline_score': 65,
+            'headline_tips': ['Add numbers', 'Use power words'],
+            'summary_score': 70,
+            'summary_tips': ['Start with impact statement'],
+            'experience_score': 75,
+            'experience_tips': ['Quantify achievements'],
+            'skills_suggestions': ['Python', 'AWS'],
+            'top_priority': 'Improve headline',
+            'headline_suggestion': 'Senior SWE | React | Python | Building Scalable Systems',
+            'summary_suggestion': 'I build reliable software that scales.',
+        }
+        with mock.patch('resumes.ai_views.optimize_linkedin_profile', return_value=mock_result):
+            response = self.client.post(
+                '/api/linkedin/optimize/',
+                {'headline': 'Software Engineer', 'summary': 'Experienced dev'},
+                format='json'
+            )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['overall_score'], 72)
+        self.assertIn('headline_tips', data)
+        self.assertIn('remaining', data)
+
+    def test_linkedin_rate_limit(self):
+        """Returns 429 when daily limit is exhausted."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        from ai.rate_limiter import _linkedin_counts
+        from datetime import datetime, timedelta, timezone
+        uid = self.user.id
+        _linkedin_counts[uid] = [(10, datetime.now(timezone.utc) + timedelta(hours=24))]
+        response = self.client.post(
+            '/api/linkedin/optimize/',
+            {'headline': 'Software Engineer'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.json()['error'], 'rate_limit')

@@ -230,3 +230,81 @@ def generate_interview_questions(
     if not isinstance(questions, list):
         questions = []
     return questions
+
+
+def generate_email_template(
+    resume_data: str,
+    email_type: str,
+    recipient_name: str,
+    job_title: str,
+    company_name: str,
+    custom_notes: str = "",
+) -> str:
+    """Generate a professional email template."""
+    system_prompt = (
+        "You are a professional career communications writer. "
+        f"Write a complete, professional email of 150-300 words. "
+        f"Type: {email_type}. "
+        "Use a warm but professional tone. "
+        "Return only the email body text — no subject line, no salutation (recipient name is provided), "
+        "no sign-off. Start directly with the opening paragraph. "
+        "Do not invent any facts not present in the resume data."
+    )
+    user_prompt = (
+        f"Resume:\n{resume_data}\n\n"
+        f"Email Type: {email_type}\n"
+        f"Recipient: {recipient_name}\n"
+        f"Job Title: {job_title}\n"
+        f"Company: {company_name}\n"
+        f"Custom Notes: {custom_notes or 'None'}"
+    )
+    body = call_openai(system_prompt, user_prompt, max_tokens=600)
+    return body
+
+
+def optimize_linkedin_profile(
+    headline: str,
+    summary: str,
+    experience_items: str,
+    skills: str,
+    job_title: str,
+    target_industry: str,
+) -> dict:
+    """Analyze and optimize a LinkedIn profile."""
+    import json
+    system_prompt = (
+        "You are a LinkedIn profile optimization expert. "
+        "Review the profile sections and return a JSON object with:\n"
+        "- 'headline_score': integer 0-100\n"
+        "- 'headline_tips': list of strings (specific actionable tips for the headline)\n"
+        "- 'summary_score': integer 0-100\n"
+        "- 'summary_tips': list of strings (tips for the About/summary section)\n"
+        "- 'experience_score': integer 0-100\n"
+        "- 'experience_tips': list of strings (tips for experience entries)\n"
+        "- 'skills_suggestions': list of strings (relevant skills to add)\n"
+        "- 'overall_score': integer 0-100 (weighted average)\n"
+        "- 'top_priority': string (the single most impactful improvement)\n"
+        "- 'headline_suggestion': string (a suggested revised headline)\n"
+        "- 'summary_suggestion': string (2-3 sentence improved summary opening)\n"
+        "Be specific and actionable. Score honestly."
+    )
+    user_prompt = (
+        f"Target Role: {job_title}\n"
+        f"Target Industry: {target_industry}\n\n"
+        f"Current Headline: {headline}\n\n"
+        f"Current Summary:\n{summary}\n\n"
+        f"Experience:\n{experience_items}\n\n"
+        f"Skills: {skills}"
+    )
+    client = get_client()
+    response = client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        max_tokens=1200,
+        response_format={"type": "json_object"},
+    )
+    result = json.loads(response.choices[0].message.content.strip())
+    return result

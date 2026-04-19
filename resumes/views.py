@@ -654,3 +654,31 @@ def interview_prep_page(request, resume_id=None):
         'resume': resume,
         'tier': current_tier,
     })
+
+
+@login_required
+def email_template_page(request, resume_id=None):
+    """Email Template Generator page."""
+    resume = None
+    if resume_id:
+        resume = _get_user_resume_or_403(request, resume_id)
+    tier = getattr(request.user, 'profile', None)
+    current_tier = tier.subscription_tier if tier else 'free'
+    return render(request, 'resumes/email_template.html', {
+        'resume': resume,
+        'tier': current_tier,
+    })
+
+
+@login_required
+def linkedin_optimizer_page(request, resume_id=None):
+    """LinkedIn Optimizer page."""
+    resume = None
+    if resume_id:
+        resume = _get_user_resume_or_403(request, resume_id)
+    tier = getattr(request.user, 'profile', None)
+    current_tier = tier.subscription_tier if tier else 'free'
+    return render(request, 'resumes/linkedin_optimizer.html', {
+        'resume': resume,
+        'tier': current_tier,
+    })

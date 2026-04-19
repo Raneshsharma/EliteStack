@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block title %}Email Template Generator{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-8 px-4">
+    <div class="flex items-center gap-3 mb-6">
+        {% if resume %}
+        <a href="{% url 'resume_update' resume.id %}" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </a>
+        {% endif %}
+        <h1 class="text-2xl font-bold text-gray-900">Email Template Generator</h1>
+    </div>
+
+    {% if tier == 'free' %}
+    <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
+        <span class="text-xl">⭐</span>
+        <div>
+            <p class="font-medium text-amber-800">Email Templates is a Pro/Premium feature.</p>
+            <a href="/#pricing" class="text-sm text-amber-700 underline">View Plans →</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Input Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Create Your Email</h2>
+        <form id="email-form">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email Type</label>
+                <select id="email-type" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="thank_you">Thank You Note</option>
+                    <option value="follow_up">Follow Up</option>
+                    <option value="interest">Interest / Inquiry</option>
+                    <option value="introduction">Self Introduction</option>
+                    <option value="request">Information Request</option>
+                </select>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Recipient Name</label>
+                    <input id="recipient-name" type="text"
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Jane Smith">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Job Title <span class="text-gray-400">(optional)</span></label>
+                    <input id="job-title" type="text"
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Senior Engineer">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Company Name <span class="text-gray-400">(optional)</span></label>
+                <input id="company-name" type="text"
+                       class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Acme Corp">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Custom Notes <span class="text-gray-400">(optional)</span></label>
+                <textarea id="custom-notes" rows="2"
+                          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Anything specific you want to mention..."></textarea>
+            </div>
+
+            <button type="submit" id="email-btn"
+                    class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 {% if tier == 'free' %}opacity-50 cursor-not-allowed{% endif %}"
+                    {% if tier == 'free' %}disabled{% endif %}>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                Generate Email
+            </button>
+        </form>
+    </div>
+
+    <!-- Loading -->
+    <div id="email-loading" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+        <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
+        <p class="text-gray-600">Writing your professional email...</p>
+    </div>
+
+    <!-- Result -->
+    <div id="email-result" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Your Email</h2>
+            <button id="copy-btn" class="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                Copy
+            </button>
+        </div>
+        <div id="email-body" class="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap text-sm leading-relaxed"></div>
+    </div>
+
+    <!-- Error -->
+    <div id="email-error" class="hidden p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p id="email-error-text" class="text-red-700 text-sm"></p>
+    </div>
+</div>
+
+<script>
+(function() {
+    var form = document.getElementById('email-form');
+    var loadingDiv = document.getElementById('email-loading');
+    var resultDiv = document.getElementById('email-result');
+    var errorDiv = document.getElementById('email-error');
+    var emailBody = document.getElementById('email-body');
+    var copyBtn = document.getElementById('copy-btn');
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    var resumeId = {{ resume.id|default:'null' }};
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var recipientName = document.getElementById('recipient-name').value.trim();
+        if (!recipientName) {
+            alert('Recipient name is required.');
+            return;
+        }
+
+        form.classList.add('hidden');
+        loadingDiv.classList.remove('hidden');
+        resultDiv.classList.add('hidden');
+        errorDiv.classList.add('hidden');
+
+        var payload = {
+            email_type: document.getElementById('email-type').value,
+            recipient_name: recipientName,
+            job_title: document.getElementById('job-title').value.trim(),
+            company_name: document.getElementById('company-name').value.trim(),
+            custom_notes: document.getElementById('custom-notes').value.trim(),
+        };
+        if (resumeId) payload.resume_id = resumeId;
+
+        fetch('/api/email-template/generate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            loadingDiv.classList.add('hidden');
+            if (resp.error === 'upgrade_required') {
+                form.classList.remove('hidden');
+                alert('This feature requires a Pro or Premium subscription.');
+                window.location.href = '/#pricing';
+                return;
+            }
+            if (resp.error) {
+                errorDiv.classList.remove('hidden');
+                document.getElementById('email-error-text').textContent = resp.message || resp.error;
+                form.classList.remove('hidden');
+                return;
+            }
+            emailBody.textContent = resp.body || '';
+            resultDiv.classList.remove('hidden');
+            form.classList.remove('hidden');
+        })
+        .catch(function() {
+            loadingDiv.classList.add('hidden');
+            errorDiv.classList.remove('hidden');
+            document.getElementById('email-error-text').textContent = 'Failed to generate email. Please try again.';
+            form.classList.remove('hidden');
+        });
+    });
+
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(emailBody.textContent).then(function() {
+                copyBtn.textContent = 'Copied!';
+                setTimeout(function() {
+                    copyBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> Copy';
+                }, 2000);
+            });
+        });
+    }
+})();
+</script>
+{% endblock %}
