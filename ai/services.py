@@ -187,3 +187,46 @@ def chat_with_assistant(
         temperature=0.7,
     )
     return response.choices[0].message.content.strip()
+
+
+def generate_interview_questions(
+    resume_data: str,
+    job_title: str,
+    job_description: str,
+    num_questions: int = 12,
+) -> list[dict]:
+    """Generate interview questions (behavioral, situational, technical, culture)."""
+    import json
+    system_prompt = (
+        "You are an expert interview coach. Based on the resume and job description, "
+        "generate interview questions for a candidate. Return a JSON array of objects "
+        "with these exact fields for each question:\n"
+        "- 'text': the question string\n"
+        "- 'category': one of 'behavioral', 'situational', 'technical', 'culture'\n"
+        "- 'answer_framework': a brief framework/guide (2-4 sentences) for answering this type of question\n"
+        "Aim for roughly equal distribution across categories. "
+        "Return exactly the requested number of questions. "
+        "Return only the JSON array — no preamble or explanation."
+    )
+    user_prompt = (
+        f"Job Title: {job_title}\n\n"
+        f"Resume:\n{resume_data}\n\n"
+        f"Job Description:\n{job_description}\n\n"
+        f"Generate {num_questions} interview questions."
+    )
+    client = get_client()
+    response = client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        max_tokens=1500,
+        response_format={"type": "json_object"},
+    )
+    result = json.loads(response.choices[0].message.content.strip())
+    # Accept both {"questions": [...]} and direct [...]
+    questions = result.get("questions", result) if isinstance(result, dict) else result
+    if not isinstance(questions, list):
+        questions = []
+    return questions

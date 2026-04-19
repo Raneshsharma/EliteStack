@@ -7,10 +7,11 @@ from django.conf import settings
 from django.http import HttpResponse
 from .models import Resume, CoverLetter, ChatMessage
 from .serializers import ResumeSerializer
-from ai.services import generate_resume_rewrites, generate_cover_letter, generate_job_match, analyze_ats_score, chat_with_assistant
+from ai.services import generate_resume_rewrites, generate_cover_letter, generate_job_match, analyze_ats_score, chat_with_assistant, generate_interview_questions
 from ai.rate_limiter import (
     record_ats, record_chat, get_rewrite_remaining, record_rewrite,
     get_coverletter_remaining, record_coverletter, get_chat_remaining,
+    get_interview_remaining, record_interview,
 )
 from ai.salary_data import calculate_salary, get_offer_assessment, get_all_titles
 
@@ -466,3 +467,62 @@ class SalaryTitlesView(APIView):
 
     def get(self, _request):
         return Response({'titles': get_all_titles()})
+
+
+class InterviewPrepView(APIView):
+    """POST /api/interview-prep/generate/ — generate interview questions."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        profile = getattr(request.user, 'profile', None)
+        tier = profile.subscription_tier if profile else 'free'
+        daily_limit = settings.INTERVIEW_PREP_RATE_LIMITS.get(tier, 0)
+
+        if daily_limit == 0:
+            return Response(
+                {'error': 'upgrade_required', 'message': 'Upgrade to Pro or Premium to use Interview Prep.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        job_title = request.data.get('job_title', '').strip()
+        job_description = request.data.get('job_description', '').strip()
+        resume_id = request.data.get('resume_id')
+
+        if not job_title:
+            return Response(
+                {'error': 'validation_error', 'message': 'job_title is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        remaining = get_interview_remaining(request.user.id, daily_limit)
+        if remaining <= 0:
+            return Response(
+                {'error': 'rate_limit', 'message': 'Daily Interview Prep limit reached.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        resume_data = ""
+        if resume_id:
+            resume = Resume.objects.filter(user=request.user, id=resume_id).first()
+            if resume:
+                resume_data = serialize_resume_text(resume)
+
+        try:
+            questions = generate_interview_questions(
+                resume_data=resume_data,
+                job_title=job_title,
+                job_description=job_description[:3000] if job_description else "",
+            )
+        except Exception as e:
+            import logging
+            logging.error(f"Interview prep failed for user {request.user.id}: {e}")
+            return Response(
+                {'error': 'Failed to generate questions. Please try again.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        record_interview(request.user.id, daily_limit)
+        return Response({
+            'questions': questions,
+            'remaining': get_interview_remaining(request.user.id, daily_limit),
+        })

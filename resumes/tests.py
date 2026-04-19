@@ -1470,3 +1470,94 @@ class ChatAPITests(TestCase):
         self.assertEqual(data['reply'], 'Hello!')
         self.assertIn('conversation_id', data)
         self.assertEqual(len(data['conversation_id']), 36)
+
+
+class InterviewPrepAPITests(TestCase):
+    """Tests for Interview Prep API."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user('testuser', 'test@example.com', 'testpass123')
+        self.client.login(username='testuser', password='testpass123')
+        self.resume = Resume.objects.create(user=self.user, title='Test Resume')
+
+    def test_interview_prep_requires_auth(self):
+        """Unauthenticated POST returns 401/403."""
+        self.client.logout()
+        response = self.client.post(
+            '/api/interview-prep/generate/',
+            {'job_title': 'Software Engineer'},
+            format='json'
+        )
+        self.assertIn(response.status_code, [401, 403])
+
+    def test_interview_prep_free_tier_gated(self):
+        """Free tier returns 403 with upgrade_required error."""
+        response = self.client.post(
+            '/api/interview-prep/generate/',
+            {'job_title': 'Software Engineer'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['error'], 'upgrade_required')
+
+    def test_interview_prep_missing_job_title(self):
+        """Missing job_title returns 400."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        response = self.client.post(
+            '/api/interview-prep/generate/',
+            {},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['error'], 'validation_error')
+
+    def test_interview_prep_rate_limit(self):
+        """Returns 429 when daily limit is exhausted."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        from ai.rate_limiter import _interview_counts
+        from datetime import datetime, timedelta, timezone
+        uid = self.user.id
+        _interview_counts[uid] = [(10, datetime.now(timezone.utc) + timedelta(hours=24))]
+        response = self.client.post(
+            '/api/interview-prep/generate/',
+            {'job_title': 'Software Engineer'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.json()['error'], 'rate_limit')
+
+    def test_interview_prep_generates_questions(self):
+        """Returns questions array when generation succeeds."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        import unittest.mock as mock
+        mock_questions = [
+            {'text': 'Tell me about yourself.', 'category': 'behavioral', 'answer_framework': 'Use the STAR method.'},
+            {'text': 'Why this company?', 'category': 'culture', 'answer_framework': 'Research the company values.'},
+        ]
+        with mock.patch('resumes.ai_views.generate_interview_questions', return_value=mock_questions):
+            response = self.client.post(
+                '/api/interview-prep/generate/',
+                {'job_title': 'Software Engineer', 'job_description': 'Builds web apps'},
+                format='json'
+            )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data['questions']), 2)
+        self.assertEqual(data['questions'][0]['text'], 'Tell me about yourself.')
+
+    def test_interview_prep_nonexistent_resume_404(self):
+        """Non-existent resume_id does not cause error (resume is optional)."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        import unittest.mock as mock
+        with mock.patch('resumes.ai_views.generate_interview_questions', return_value=[]):
+            response = self.client.post(
+                '/api/interview-prep/generate/',
+                {'job_title': 'Software Engineer', 'resume_id': 99999},
+                format='json'
+            )
+        self.assertEqual(response.status_code, 200)

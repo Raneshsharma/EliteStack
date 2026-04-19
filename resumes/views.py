@@ -640,3 +640,17 @@ def salary_calculator_page(request):
     return render(request, 'resumes/salary_calculator.html', {
         'tier': current_tier,
     })
+
+
+@login_required
+def interview_prep_page(request, resume_id=None):
+    """Interview Prep page."""
+    resume = None
+    if resume_id:
+        resume = _get_user_resume_or_403(request, resume_id)
+    tier = getattr(request.user, 'profile', None)
+    current_tier = tier.subscription_tier if tier else 'free'
+    return render(request, 'resumes/interview_prep.html', {
+        'resume': resume,
+        'tier': current_tier,
+    })

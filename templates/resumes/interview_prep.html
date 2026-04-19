@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% block title %}Interview Prep{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-8 px-4">
+    <div class="flex items-center gap-3 mb-6">
+        {% if resume %}
+        <a href="{% url 'resume_update' resume.id %}" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </a>
+        {% endif %}
+        <h1 class="text-2xl font-bold text-gray-900">Interview Prep</h1>
+    </div>
+
+    {% if tier == 'free' %}
+    <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
+        <span class="text-xl">⭐</span>
+        <div>
+            <p class="font-medium text-amber-800">Interview Prep is a Pro/Premium feature.</p>
+            <a href="/#pricing" class="text-sm text-amber-700 underline">View Plans →</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Input Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Generate Practice Questions</h2>
+        <form id="prep-form">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                <input id="job-title" type="text" rows="1"
+                       class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="e.g., Senior Frontend Engineer" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Job Description <span class="text-gray-400">(optional but recommended)</span>
+                </label>
+                <textarea id="job-description" name="job_description" rows="6"
+                          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Paste the job description here for tailored questions..."></textarea>
+            </div>
+
+            <button type="submit" id="prep-btn"
+                    class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 {% if tier == 'free' %}opacity-50 cursor-not-allowed{% endif %}"
+                    {% if tier == 'free' %}disabled{% endif %}>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Generate Interview Questions
+            </button>
+        </form>
+    </div>
+
+    <!-- Loading -->
+    <div id="prep-loading" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+        <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
+        <p class="text-gray-600">Generating tailored interview questions...</p>
+    </div>
+
+    <!-- Results -->
+    <div id="prep-result" class="hidden space-y-4">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-lg font-semibold text-gray-900">Your Interview Questions</h2>
+            <span id="q-count" class="text-sm text-gray-500"></span>
+        </div>
+
+        <!-- Category tabs -->
+        <div class="flex gap-2 flex-wrap" id="category-tabs">
+            <button class="tab-btn px-3 py-1.5 rounded-full text-sm font-medium bg-blue-600 text-white" data-category="all">All</button>
+            <button class="tab-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" data-category="behavioral">Behavioral</button>
+            <button class="tab-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" data-category="situational">Situational</button>
+            <button class="tab-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" data-category="technical">Technical</button>
+            <button class="tab-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" data-category="culture">Culture</button>
+        </div>
+
+        <div id="questions-list" class="space-y-4"></div>
+    </div>
+
+    <!-- Error -->
+    <div id="prep-error" class="hidden p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p id="prep-error-text" class="text-red-700 text-sm"></p>
+    </div>
+</div>
+
+<script>
+(function() {
+    var form = document.getElementById('prep-form');
+    var jobTitle = document.getElementById('job-title');
+    var jobDesc = document.getElementById('job-description');
+    var loadingDiv = document.getElementById('prep-loading');
+    var resultDiv = document.getElementById('prep-result');
+    var errorDiv = document.getElementById('prep-error');
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    var resumeId = {{ resume.id|default:'null' }};
+    var allQuestions = [];
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var jt = jobTitle.value.trim();
+        if (!jt) return;
+
+        form.classList.add('hidden');
+        loadingDiv.classList.remove('hidden');
+        resultDiv.classList.add('hidden');
+        errorDiv.classList.add('hidden');
+
+        var payload = {
+            job_title: jt,
+            job_description: jobDesc.value.trim(),
+        };
+        if (resumeId) payload.resume_id = resumeId;
+
+        fetch('/api/interview-prep/generate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            loadingDiv.classList.add('hidden');
+            if (resp.error === 'upgrade_required') {
+                form.classList.remove('hidden');
+                alert('This feature requires a Pro or Premium subscription.');
+                window.location.href = '/#pricing';
+                return;
+            }
+            if (resp.error) {
+                errorDiv.classList.remove('hidden');
+                document.getElementById('prep-error-text').textContent = resp.message || resp.error;
+                form.classList.remove('hidden');
+                return;
+            }
+            allQuestions = resp.questions || [];
+            showQuestions(allQuestions, 'all');
+            document.getElementById('q-count').textContent = allQuestions.length + ' questions';
+            resultDiv.classList.remove('hidden');
+        })
+        .catch(function() {
+            loadingDiv.classList.add('hidden');
+            errorDiv.classList.remove('hidden');
+            document.getElementById('prep-error-text').textContent = 'Failed to generate questions. Please try again.';
+            form.classList.remove('hidden');
+        });
+    });
+
+    function showQuestions(questions, category) {
+        var filtered = category === 'all' ? questions : questions.filter(function(q) { return q.category === category; });
+        var list = document.getElementById('questions-list');
+        list.innerHTML = '';
+        filtered.forEach(function(q) {
+            var card = document.createElement('div');
+            card.className = 'bg-white rounded-xl shadow-sm border border-gray-200 p-5 question-card';
+            card.dataset.category = q.category || 'other';
+
+            var catColor = {
+                'behavioral': 'bg-blue-100 text-blue-700',
+                'situational': 'bg-purple-100 text-purple-700',
+                'technical': 'bg-green-100 text-green-700',
+                'culture': 'bg-amber-100 text-amber-700',
+            }[q.category] || 'bg-gray-100 text-gray-700';
+
+            card.innerHTML =
+                '<div class="flex items-start justify-between gap-3 mb-3">' +
+                    '<span class="px-2 py-0.5 rounded text-xs font-medium ' + catColor + '">' + capitalize(q.category || 'other') + '</span>' +
+                '</div>' +
+                '<p class="text-gray-900 font-medium mb-2 text-sm">' + escapeHtml(q.text || '') + '</p>' +
+                '<div class="mt-3 p-3 bg-gray-50 rounded-lg">' +
+                    '<p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Answer Framework</p>' +
+                    '<p class="text-sm text-gray-700">' + escapeHtml(q.answer_framework || '') + '</p>' +
+                '</div>';
+            list.appendChild(card);
+        });
+    }
+
+    document.getElementById('category-tabs').addEventListener('click', function(e) {
+        var btn = e.target.closest('.tab-btn');
+        if (!btn) return;
+        document.querySelectorAll('.tab-btn').forEach(function(b) {
+            b.className = 'tab-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200';
+        });
+        btn.className = 'tab-btn px-3 py-1.5 rounded-full text-sm font-medium bg-blue-600 text-white';
+        showQuestions(allQuestions, btn.dataset.category);
+    });
+
+    function capitalize(str) {
+        return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g, '<br>');
+    }
+})();
+</script>
+{% endblock %}
