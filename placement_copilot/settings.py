@@ -183,3 +183,33 @@ COVER_LETTER_RATE_LIMITS = {
     'pro': 10,
     'premium': 30,
 }
+JOB_MATCH_RATE_LIMITS = {
+    'free': 0,
+    'pro': 5,
+    'premium': 20,
+}
+ATS_SCORE_RATE_LIMITS = {
+    'free': 0,
+    'pro': 10,
+    'premium': 30,
+}
+AI_CHAT_RATE_LIMITS = {
+    'free': 5,        # 5 free messages/day for all users
+    'pro': 50,
+    'premium': 100,
+}
+INTERVIEW_PREP_RATE_LIMITS = {
+    'free': 0,
+    'pro': 10,
+    'premium': 30,
+}
+EMAIL_TEMPLATE_RATE_LIMITS = {
+    'free': 0,
+    'pro': 20,
+    'premium': 50,
+}
+LINKEDIN_OPTIMIZE_RATE_LIMITS = {
+    'free': 0,
+    'pro': 10,
+    'premium': 30,
+}
