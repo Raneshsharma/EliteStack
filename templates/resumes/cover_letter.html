@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% block title %}Generate Cover Letter - {{ resume.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-8 px-4">
+    <div class="flex items-center gap-3 mb-6">
+        <a href="{% url 'resume_update' resume.id %}" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900">Generate Cover Letter</h1>
+    </div>
+
+    <!-- Tier Banner -->
+    {% if tier == 'free' %}
+    <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
+        <span class="text-xl">⭐</span>
+        <div>
+            <p class="font-medium text-amber-800">Cover Letter Generator is a Pro/Premium feature.</p>
+            <a href="/#pricing" class="text-sm text-amber-700 underline">View Plans →</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+        {{ remaining }} of {{ limit }} cover letters remaining today.
+    </div>
+    {% endif %}
+
+    <!-- Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <form id="cl-form" method="POST">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Job Title *</label>
+                    <input type="text" name="job_title" required
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="e.g., Software Engineer">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
+                    <input type="text" name="company_name" required
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="e.g., Acme Corp">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Hiring Manager (optional)</label>
+                <input type="text" name="hiring_manager_name"
+                       class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="e.g., Sarah Johnson">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Job Description <span class="text-gray-400">(optional — paste for a more tailored letter)</span>
+                </label>
+                <textarea name="job_description" rows="5"
+                          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Paste the job description here to get a personalized cover letter..."
+                          maxlength="3000"></textarea>
+                <p class="text-xs text-gray-400 mt-1">Max 3,000 characters. More details = better results.</p>
+            </div>
+            <button type="submit" id="generate-btn"
+                    class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 {% if tier == 'free' %}opacity-50 cursor-not-allowed{% endif %}"
+                    {% if tier == 'free' %}disabled{% endif %}>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Generate Cover Letter
+            </button>
+        </form>
+
+        <!-- Loading State -->
+        <div id="cl-loading" class="hidden text-center py-10">
+            <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
+            <p class="text-gray-600">Writing your cover letter...</p>
+            <p class="text-gray-400 text-sm mt-1">This may take up to 30 seconds</p>
+        </div>
+
+        <!-- Generated Letter -->
+        <div id="cl-result" class="hidden mt-6">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-lg font-semibold text-gray-900">Generated Cover Letter</h2>
+                <span id="cl-word-count" class="text-sm text-gray-400"></span>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                <pre id="cl-content" class="whitespace-pre-wrap text-sm text-gray-800 font-sans" style="font-family: inherit;"></pre>
+            </div>
+            <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                ⚠️ AI-generated. Please review and personalize before submitting.
+            </div>
+            <div class="mt-4 flex gap-3">
+                <button id="cl-copy-btn" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm">
+                    Copy to Clipboard
+                </button>
+                <a id="cl-download-btn" class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">
+                    Download as Text
+                </a>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <div id="cl-error" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p id="cl-error-text" class="text-red-700 text-sm"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var form = document.getElementById('cl-form');
+    var generateBtn = document.getElementById('generate-btn');
+    var loadingDiv = document.getElementById('cl-loading');
+    var resultDiv = document.getElementById('cl-result');
+    var errorDiv = document.getElementById('cl-error');
+    var contentPre = document.getElementById('cl-content');
+    var wordCount = document.getElementById('cl-word-count');
+    var copyBtn = document.getElementById('cl-copy-btn');
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    var resumeId = {{ resume.id }};
+    var generatedId = null;
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var formData = new FormData(form);
+        var data = {
+            job_title: formData.get('job_title'),
+            company_name: formData.get('company_name'),
+            hiring_manager_name: formData.get('hiring_manager_name'),
+            job_description: formData.get('job_description'),
+        };
+
+        form.classList.add('hidden');
+        loadingDiv.classList.remove('hidden');
+
+        fetch('/api/resumes/' + resumeId + '/cover-letter/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify(data)
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            loadingDiv.classList.add('hidden');
+            if (resp.error === 'upgrade_required') {
+                form.classList.remove('hidden');
+                alert('This feature requires a Pro or Premium subscription.');
+                window.location.href = '/#pricing';
+                return;
+            }
+            if (resp.error) {
+                errorDiv.classList.remove('hidden');
+                document.getElementById('cl-error-text').textContent = resp.error;
+                form.classList.remove('hidden');
+                return;
+            }
+            generatedId = resp.id;
+            contentPre.textContent = resp.content;
+            wordCount.textContent = resp.word_count + ' words';
+            document.getElementById('cl-download-btn').href = '/api/cover-letter/' + resp.id + '/download/';
+            resultDiv.classList.remove('hidden');
+        })
+        .catch(function() {
+            loadingDiv.classList.add('hidden');
+            errorDiv.classList.remove('hidden');
+            document.getElementById('cl-error-text').textContent = 'Failed to generate cover letter. Please try again.';
+            form.classList.remove('hidden');
+        });
+    });
+
+    copyBtn && copyBtn.addEventListener('click', function() {
+        navigator.clipboard.writeText(contentPre.textContent).then(function() {
+            copyBtn.textContent = 'Copied!';
+            setTimeout(function() { copyBtn.textContent = 'Copy to Clipboard'; }, 2000);
+        });
+    });
+})();
+</script>
+{% endblock %}
