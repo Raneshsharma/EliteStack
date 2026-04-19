@@ -619,3 +619,14 @@ def job_match_page(request, resume_id):
         'resume': resume,
         'tier': current_tier,
     })
+
+
+def ats_score_page(request, resume_id):
+    """ATS Score Checker page — analyze resume against a job description."""
+    resume = _get_user_resume_or_403(request, resume_id)
+    tier = getattr(request.user, 'profile', None)
+    current_tier = tier.subscription_tier if tier else 'free'
+    return render(request, 'resumes/ats_score.html', {
+        'resume': resume,
+        'tier': current_tier,
+    })

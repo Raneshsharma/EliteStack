@@ -7,7 +7,8 @@ from django.conf import settings
 from django.http import HttpResponse
 from .models import Resume, CoverLetter
 from .serializers import ResumeSerializer
-from ai.services import generate_resume_rewrites, generate_cover_letter, generate_job_match
+from ai.services import generate_resume_rewrites, generate_cover_letter, generate_job_match, analyze_ats_score
+from ai.rate_limiter import record_ats
 from ai.rate_limiter import get_rewrite_remaining, record_rewrite, get_coverletter_remaining, record_coverletter
 
 
@@ -273,4 +274,58 @@ class JobMatchView(APIView):
             'keywords_found': result.get('keywords_found', []),
             'keywords_matched': result.get('keywords_matched', []),
             'recommendations': result.get('recommendations', []),
+        })
+
+
+class ATSScoreView(APIView):
+    """POST /api/resumes/<id>/ats-score/ — analyze resume against job description."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, resume_id):
+        user = request.user
+        profile = getattr(user, 'profile', None)
+        tier = profile.subscription_tier if profile else 'free'
+        limit = settings.ATS_SCORE_RATE_LIMITS.get(tier, 0)
+
+        if limit == 0:
+            return Response(
+                {'error': 'upgrade_required', 'message': 'Upgrade to Pro or Premium to use ATS scoring.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        job_description = request.data.get('job_description', '').strip()
+        if len(job_description) < 30:
+            return Response(
+                {'error': 'validation_error', 'message': 'Job description must be at least 30 characters.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(job_description) > 5000:
+            return Response(
+                {'error': 'validation_error', 'message': 'Job description must be under 5000 characters.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            resume = Resume.objects.get(id=resume_id, user=user)
+        except Resume.DoesNotExist:
+            return Response(
+                {'error': 'not_found', 'message': 'Resume not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        resume_text = serialize_resume_text(resume)
+        result = analyze_ats_score(resume_text, job_description)
+
+        remaining = record_ats(user.id, limit)
+
+        return Response({
+            'overall_score': result.get('overall_score', 0),
+            'keyword_score': result.get('keyword_score', 0),
+            'formatting_score': result.get('formatting_score', 0),
+            'readability_score': result.get('readability_score', 0),
+            'length_score': result.get('length_score', 0),
+            'missing_keywords': result.get('missing_keywords', []),
+            'matched_keywords': result.get('matched_keywords', []),
+            'recommendations': result.get('recommendations', []),
+            'remaining': remaining,
         })

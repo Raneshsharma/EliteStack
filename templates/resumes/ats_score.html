@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+{% block title %}ATS Score - {{ resume.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-8 px-4">
+    <div class="flex items-center gap-3 mb-6">
+        <a href="{% url 'resume_update' resume.id %}" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900">ATS Score Checker</h1>
+    </div>
+
+    <!-- Tier Banner -->
+    {% if tier == 'free' %}
+    <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
+        <span class="text-xl">⭐</span>
+        <div>
+            <p class="font-medium text-amber-800">ATS Score Checker is a Pro/Premium feature.</p>
+            <a href="/#pricing" class="text-sm text-amber-700 underline">View Plans →</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Job Description Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Paste Job Description</h2>
+        <form id="ats-form">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Job Description <span class="text-gray-400">(paste the full job posting)</span>
+                </label>
+                <textarea id="job-description" name="job_description" rows="10"
+                          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Paste the full job description here. We'll analyze how well your resume matches..."
+                          maxlength="5000">{{ job_description|default:'' }}</textarea>
+                <p class="text-xs text-gray-400 mt-1"><span id="jd-chars">0</span>/5,000 characters</p>
+            </div>
+
+            <button type="submit" id="score-btn"
+                    class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 {% if tier == 'free' %}opacity-50 cursor-not-allowed{% endif %}"
+                    {% if tier == 'free' %}disabled{% endif %}>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                Check My ATS Score
+            </button>
+        </form>
+    </div>
+
+    <!-- Loading -->
+    <div id="ats-loading" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+        <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
+        <p class="text-gray-600">Analyzing your resume against the job description...</p>
+        <p class="text-gray-400 text-sm mt-1">This may take up to 15 seconds</p>
+    </div>
+
+    <!-- Results -->
+    <div id="ats-result" class="hidden space-y-4">
+        <!-- Overall Score Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+            <p class="text-sm font-medium text-gray-500 mb-1">Overall ATS Score</p>
+            <div class="relative inline-flex items-center justify-center w-40 h-40 mb-4">
+                <svg class="w-40 h-40 transform -rotate-90">
+                    <circle cx="80" cy="80" r="70" stroke="#e5e7eb" stroke-width="12" fill="none"/>
+                    <circle id="score-ring" cx="80" cy="80" r="70" stroke="#3b82f6" stroke-width="12" fill="none"
+                            stroke-linecap="round"
+                            stroke-dasharray="439.8"
+                            stroke-dashoffset="439.8"
+                            style="transition: stroke-dashoffset 1s ease-out"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <span id="ats-score" class="text-4xl font-bold text-blue-600">0</span>
+                </div>
+            </div>
+            <p id="ats-score-label" class="text-lg font-semibold text-gray-800"></p>
+            <p id="ats-score-desc" class="text-sm text-gray-500 mt-1"></p>
+        </div>
+
+        <!-- Score Breakdown -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Keyword Score</p>
+                <div class="flex items-end gap-2 mb-2">
+                    <span id="keyword-score" class="text-2xl font-bold text-green-600">0</span>
+                    <span class="text-sm text-gray-400">/100</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="keyword-bar" class="bg-green-500 h-2 rounded-full transition-all duration-700" style="width: 0%"></div>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Job keywords found in your resume</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Formatting Score</p>
+                <div class="flex items-end gap-2 mb-2">
+                    <span id="format-score" class="text-2xl font-bold text-blue-600">0</span>
+                    <span class="text-sm text-gray-400">/100</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="format-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-700" style="width: 0%"></div>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">ATS readability and structure</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Readability Score</p>
+                <div class="flex items-end gap-2 mb-2">
+                    <span id="read-score" class="text-2xl font-bold text-purple-600">0</span>
+                    <span class="text-sm text-gray-400">/100</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="read-bar" class="bg-purple-500 h-2 rounded-full transition-all duration-700" style="width: 0%"></div>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Flesch-Kincaid grade level 8-12</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Length Score</p>
+                <div class="flex items-end gap-2 mb-2">
+                    <span id="len-score" class="text-2xl font-bold text-amber-600">0</span>
+                    <span class="text-sm text-gray-400">/100</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="len-bar" class="bg-amber-500 h-2 rounded-full transition-all duration-700" style="width: 0%"></div>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Optimal: 1 page = 100</p>
+            </div>
+        </div>
+
+        <!-- Keywords Analysis -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Keyword Analysis</h2>
+            <div class="mb-4">
+                <p class="text-sm font-medium text-gray-700 mb-2">✅ Keywords Matched</p>
+                <div id="matched-keywords" class="flex flex-wrap gap-2"></div>
+                {% if not matched-keywords %}
+                <p id="matched-empty" class="text-sm text-gray-400">No keywords matched yet.</p>
+                {% endif %}
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-700 mb-2">❌ Missing Keywords</p>
+                <div id="missing-keywords" class="flex flex-wrap gap-2"></div>
+                {% if not missing-keywords %}
+                <p id="missing-empty" class="text-sm text-gray-400">No missing keywords identified.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Actionable Recommendations</h2>
+            <ul id="ats-recommendations" class="space-y-3"></ul>
+        </div>
+    </div>
+
+    <!-- Error -->
+    <div id="ats-error" class="hidden p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p id="ats-error-text" class="text-red-700 text-sm"></p>
+    </div>
+</div>
+
+<script>
+(function() {
+    var form = document.getElementById('ats-form');
+    var jdField = document.getElementById('job-description');
+    var scoreBtn = document.getElementById('score-btn');
+    var loadingDiv = document.getElementById('ats-loading');
+    var resultDiv = document.getElementById('ats-result');
+    var errorDiv = document.getElementById('ats-error');
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    var resumeId = {{ resume.id }};
+
+    // Character counter
+    jdField.addEventListener('input', function() {
+        document.getElementById('jd-chars').textContent = jdField.value.length;
+    });
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var jobDescription = jdField.value.trim();
+        if (!jobDescription) return;
+
+        form.classList.add('hidden');
+        loadingDiv.classList.remove('hidden');
+
+        fetch('/api/resumes/' + resumeId + '/ats-score/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({
+                job_description: jobDescription
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            loadingDiv.classList.add('hidden');
+            if (resp.error === 'upgrade_required') {
+                form.classList.remove('hidden');
+                alert('This feature requires a Pro or Premium subscription.');
+                window.location.href = '/#pricing';
+                return;
+            }
+            if (resp.error) {
+                errorDiv.classList.remove('hidden');
+                document.getElementById('ats-error-text').textContent = resp.message || resp.error;
+                form.classList.remove('hidden');
+                return;
+            }
+            showResult(resp);
+        })
+        .catch(function() {
+            loadingDiv.classList.add('hidden');
+            errorDiv.classList.remove('hidden');
+            document.getElementById('ats-error-text').textContent = 'Failed to analyze resume. Please try again.';
+            form.classList.remove('hidden');
+        });
+    });
+
+    function showResult(data) {
+        resultDiv.classList.remove('hidden');
+
+        var overall = data.overall_score || 0;
+        document.getElementById('ats-score').textContent = overall;
+
+        // Animate ring
+        var ring = document.getElementById('score-ring');
+        var circumference = 2 * Math.PI * 70; // r=70
+        var offset = circumference - (overall / 100) * circumference;
+        ring.style.strokeDashoffset = offset;
+        var ringColor = overall >= 75 ? '#22c55e' : overall >= 50 ? '#f59e0b' : '#ef4444';
+        ring.style.stroke = ringColor;
+        document.getElementById('ats-score').style.color = ringColor;
+
+        var label = overall >= 80 ? 'Excellent' :
+                    overall >= 65 ? 'Good' :
+                    overall >= 50 ? 'Needs Work' :
+                    'Poor';
+        document.getElementById('ats-score-label').textContent = label;
+        document.getElementById('ats-score-desc').textContent =
+            overall >= 80 ? 'Your resume is well-optimized for ATS.' :
+            overall >= 65 ? 'Your resume will pass most ATS filters.' :
+            overall >= 50 ? 'Some improvements recommended.' :
+            'Major revisions needed to pass ATS.';
+
+        // Score breakdowns
+        animateScore('keyword', data.keyword_score || 0);
+        animateScore('format', data.formatting_score || 0);
+        animateScore('read', data.readability_score || 0);
+        animateScore('len', data.length_score || 0);
+
+        // Keywords
+        var matchedEl = document.getElementById('matched-keywords');
+        matchedEl.innerHTML = '';
+        var matched = data.matched_keywords || [];
+        if (matched.length === 0) {
+            var p = document.createElement('p');
+            p.className = 'text-sm text-gray-400';
+            p.textContent = 'No keywords matched.';
+            matchedEl.appendChild(p);
+        } else {
+            matched.forEach(function(kw) {
+                var span = document.createElement('span');
+                span.className = 'px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium';
+                span.textContent = kw;
+                matchedEl.appendChild(span);
+            });
+        }
+
+        var missingEl = document.getElementById('missing-keywords');
+        missingEl.innerHTML = '';
+        var missing = data.missing_keywords || [];
+        if (missing.length === 0) {
+            var p2 = document.createElement('p');
+            p2.className = 'text-sm text-gray-400';
+            p2.textContent = 'No missing keywords identified.';
+            missingEl.appendChild(p2);
+        } else {
+            missing.forEach(function(kw) {
+                var span = document.createElement('span');
+                span.className = 'px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium';
+                span.textContent = kw;
+                missingEl.appendChild(span);
+            });
+        }
+
+        // Recommendations
+        var recEl = document.getElementById('ats-recommendations');
+        recEl.innerHTML = '';
+        (data.recommendations || []).forEach(function(rec) {
+            var li = document.createElement('li');
+            li.className = 'flex items-start gap-2';
+            li.innerHTML = '<span class="text-blue-500 mt-0.5 flex-shrink-0">→</span> ' + escapeHtml(rec);
+            recEl.appendChild(li);
+        });
+        if ((data.recommendations || []).length === 0) {
+            var li0 = document.createElement('li');
+            li0.className = 'text-sm text-gray-400';
+            li0.textContent = 'No specific recommendations at this time.';
+            recEl.appendChild(li0);
+        }
+    }
+
+    function animateScore(prefix, score) {
+        var el = document.getElementById(prefix + '-score');
+        var bar = document.getElementById(prefix + '-bar');
+        if (el) el.textContent = score;
+        if (bar) {
+            setTimeout(function() {
+                bar.style.width = score + '%';
+            }, 100);
+        }
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+})();
+</script>
+{% endblock %}
