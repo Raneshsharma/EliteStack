@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.http import HttpResponseForbidden
 from datetime import date
-from .models import Resume, ResumeEducation, ResumeExperience, ResumeProject, ResumeSkill
+from .models import Resume, ResumeEducation, ResumeExperience, ResumeProject, ResumeSkill, CoverLetter
 
 
 class ResumeModelTests(TestCase):
@@ -1190,4 +1190,73 @@ class AIRewriteAPITests(TestCase):
             {'selected_text': 'Some text'},
             format='json'
         )
+        self.assertEqual(response.status_code, 404)
+
+
+class CoverLetterAPITests(TestCase):
+    """Tests for Cover Letter API endpoints."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user('testuser', 'test@example.com', 'testpass123')
+        self.client.login(username='testuser', password='testpass123')
+        self.resume = Resume.objects.create(user=self.user, title='Test Resume')
+
+    def test_cover_letter_requires_auth(self):
+        """Unauthenticated POST returns 401/403."""
+        self.client.logout()
+        response = self.client.post(
+            f'/api/resumes/{self.resume.id}/cover-letter/',
+            {'job_title': 'Engineer', 'company_name': 'Acme'},
+            format='json'
+        )
+        self.assertIn(response.status_code, [401, 403])
+
+    def test_cover_letter_free_tier_gated(self):
+        """Free tier returns 403 with upgrade_required error."""
+        response = self.client.post(
+            f'/api/resumes/{self.resume.id}/cover-letter/',
+            {'job_title': 'Engineer', 'company_name': 'Acme'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['error'], 'upgrade_required')
+
+    def test_cover_letter_missing_fields(self):
+        """Missing job_title or company_name returns 400."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        response = self.client.post(
+            f'/api/resumes/{self.resume.id}/cover-letter/',
+            {'job_title': 'Engineer'},  # missing company_name
+            format='json'
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_cover_letter_nonexistent_resume(self):
+        """Non-existent resume returns 404."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        response = self.client.post(
+            '/api/resumes/99999/cover-letter/',
+            {'job_title': 'Engineer', 'company_name': 'Acme'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_cover_letter_download_requires_auth(self):
+        """Download endpoint requires authentication."""
+        cl = CoverLetter.objects.create(
+            resume=self.resume, job_title='Engineer',
+            company_name='Acme', content='Test letter'
+        )
+        self.client.logout()
+        response = self.client.get(f'/api/cover-letter/{cl.id}/download/')
+        self.assertIn(response.status_code, [401, 403])
+
+    def test_cover_letter_download_not_found(self):
+        """Non-existent cover letter returns 404."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        response = self.client.get('/api/cover-letter/99999/download/')
         self.assertEqual(response.status_code, 404)

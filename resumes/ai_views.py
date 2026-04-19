@@ -5,9 +5,9 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
 from django.http import HttpResponse
-from .models import Resume
-from ai.services import generate_resume_rewrites
-from ai.rate_limiter import get_rewrite_remaining, record_rewrite
+from .models import Resume, CoverLetter
+from ai.services import generate_resume_rewrites, generate_cover_letter
+from ai.rate_limiter import get_rewrite_remaining, record_rewrite, get_coverletter_remaining, record_coverletter
 
 
 class ResumeRewriteView(APIView):
@@ -72,3 +72,133 @@ class ResumeRewriteView(APIView):
             'remaining': new_remaining,
             'limit': daily_limit,
         })
+
+
+def serialize_resume_text(resume: Resume) -> str:
+    """Serialize a resume's key fields into a single text block for the AI."""
+    lines = []
+    if resume.full_name:
+        lines.append(f"Name: {resume.full_name}")
+    if resume.email:
+        lines.append(f"Email: {resume.email}")
+    if resume.professional_summary:
+        lines.append(f"Summary: {resume.professional_summary}")
+
+    for edu in resume.education.all():
+        lines.append(f"Education: {edu.degree} at {edu.school} ({str(edu.start_date) if edu.start_date else '?'} - {str(edu.end_date) if edu.end_date else 'Present'})")
+    for exp in resume.experience.all():
+        lines.append(f"Experience: {exp.job_title} at {exp.company} ({str(exp.start_date) if exp.start_date else '?'} - {str(exp.end_date) if exp.end_date else 'Present'})")
+        if exp.description:
+            lines.append(f"  {exp.description}")
+    for proj in resume.projects.all():
+        lines.append(f"Project: {proj.name} - {proj.description or ''}")
+    for skill in resume.skills.all():
+        lines.append(f"Skill: {skill.name}")
+    return '\n'.join(lines)
+
+
+class CoverLetterGenerateView(APIView):
+    """POST /api/resumes/<id>/cover-letter/ — generate a cover letter."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, resume_id):
+        resume = Resume.objects.filter(user=request.user, id=resume_id).first()
+        if not resume:
+            return Response({'error': 'Resume not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        tier = getattr(request.user, 'profile', None)
+        current_tier = tier.subscription_tier if tier else 'free'
+        daily_limit = settings.COVER_LETTER_RATE_LIMITS.get(current_tier, 0)
+
+        if current_tier == 'free':
+            return Response(
+                {
+                    'error': 'upgrade_required',
+                    'message': 'Cover Letter Generator is available on Pro and Premium plans.',
+                    'tier': current_tier,
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        job_title = request.data.get('job_title', '').strip()
+        company_name = request.data.get('company_name', '').strip()
+        if not job_title or not company_name:
+            return Response(
+                {'error': 'job_title and company_name are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hiring_manager = request.data.get('hiring_manager_name', '').strip()
+        job_description = request.data.get('job_description', '').strip()[:3000]
+
+        remaining = get_coverletter_remaining(request.user.id, daily_limit)
+        if remaining <= 0:
+            return Response(
+                {
+                    'error': 'rate_limit',
+                    'message': f"You've reached your daily limit ({daily_limit}). Upgrade for more.",
+                    'tier': current_tier,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        resume_data = serialize_resume_text(resume)
+        if not resume_data.strip():
+            return Response(
+                {'error': 'Your resume has no content. Add some information first.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            letter = generate_cover_letter(
+                resume_data=resume_data,
+                job_title=job_title,
+                company_name=company_name,
+                hiring_manager_name=hiring_manager,
+                job_description=job_description,
+            )
+        except Exception as e:
+            import logging
+            logging.error(f"Cover letter failed for user {request.user.id}: {e}")
+            return Response(
+                {'error': 'Failed to generate cover letter. Please try again.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        record_coverletter(request.user.id, daily_limit)
+        word_count = len(letter.split())
+
+        cl = CoverLetter.objects.create(
+            resume=resume,
+            job_title=job_title,
+            company_name=company_name,
+            hiring_manager_name=hiring_manager,
+            content=letter,
+            word_count=word_count,
+        )
+
+        return Response({
+            'id': cl.id,
+            'content': letter,
+            'word_count': word_count,
+            'job_title': job_title,
+            'company_name': company_name,
+            'remaining': get_coverletter_remaining(request.user.id, daily_limit),
+        })
+
+
+class CoverLetterDownloadView(APIView):
+    """GET /api/cover-letter/<id>/download/ — download as .txt file."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, letter_id):
+        cl = CoverLetter.objects.filter(resume__user=request.user, id=letter_id).first()
+        if not cl:
+            return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        return HttpResponse(
+            cl.content,
+            content_type='text/plain',
+            headers={
+                'Content-Disposition': f'attachment; filename="cover_letter_{cl.company_name}.txt"'
+            }
+        )
