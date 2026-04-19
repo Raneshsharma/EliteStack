@@ -6,3 +6,4 @@ crispy-tailwind
 djangorestframework
 reportlab
 openai
+gunicorn
