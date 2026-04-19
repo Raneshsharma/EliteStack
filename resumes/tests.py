@@ -1416,3 +1416,57 @@ class ATSScoreAPITests(TestCase):
             format='json'
         )
         self.assertEqual(response.status_code, 404)
+
+
+class ChatAPITests(TestCase):
+    """Tests for Chat API."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user('testuser', 'test@example.com', 'testpass123')
+        self.client.login(username='testuser', password='testpass123')
+
+    def test_chat_requires_auth(self):
+        """Unauthenticated POST returns 401/403."""
+        self.client.logout()
+        response = self.client.post(
+            '/api/chat/',
+            {'message': 'Help me with my resume'},
+            format='json'
+        )
+        self.assertIn(response.status_code, [401, 403])
+
+    def test_chat_missing_message(self):
+        """Missing message returns 400."""
+        response = self.client.post(
+            '/api/chat/',
+            {},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['error'], 'validation_error')
+
+    def test_chat_message_too_long(self):
+        """Message over 2000 chars returns 400."""
+        response = self.client.post(
+            '/api/chat/',
+            {'message': 'x' * 2001},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('2000', response.json()['message'])
+
+    def test_chat_conversation_id_generated(self):
+        """Conversation ID is generated if not provided."""
+        import unittest.mock as mock
+        with mock.patch('resumes.ai_views.chat_with_assistant', return_value='Hello!'):
+            response = self.client.post(
+                '/api/chat/',
+                {'message': 'Hello'},
+                format='json'
+            )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['reply'], 'Hello!')
+        self.assertIn('conversation_id', data)
+        self.assertEqual(len(data['conversation_id']), 36)

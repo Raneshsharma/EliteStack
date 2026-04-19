@@ -125,3 +125,65 @@ def generate_job_match(
     import json
     result = json.loads(response.choices[0].message.content.strip())
     return result
+
+
+def analyze_ats_score(
+    resume_data: str,
+    job_description: str,
+) -> dict:
+    """Analyze a resume against a job description and return ATS scoring data."""
+    system_prompt = (
+        "You are an expert ATS (Applicant Tracking System) analyzer. "
+        "Analyze the resume against the job description and return a detailed JSON analysis. "
+        "Return a JSON object with these exact keys:\n"
+        "- 'overall_score': integer 0-100 (weighted average of sub-scores)\n"
+        "- 'keyword_score': integer 0-100 (how many job keywords are in the resume)\n"
+        "- 'formatting_score': integer 0-100 (how ATS-friendly is the format)\n"
+        "- 'readability_score': integer 0-100 (target Flesch-Kincaid grade 8-12)\n"
+        "- 'length_score': integer 0-100 (optimal: 1 page=100, 1-2 pages=80, too short=60, too long=40)\n"
+        "- 'missing_keywords': list of strings (key skills/requirements from job not in resume)\n"
+        "- 'matched_keywords': list of strings (keywords present in both resume and job)\n"
+        "- 'recommendations': list of strings (specific actionable fixes)\n"
+        "Be honest and strict. ATS systems are unforgiving."
+    )
+    user_prompt = (
+        f"Resume:\n{resume_data}\n\n"
+        f"Job Description:\n{job_description}"
+    )
+    client = get_client()
+    response = client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        max_tokens=1200,
+        response_format={"type": "json_object"},
+    )
+    result = json.loads(response.choices[0].message.content.strip())
+    return result
+
+
+CHAT_SYSTEM_PROMPT = (
+    "You are a helpful career and resume assistant for Placement Copilot. "
+    "You help users with: resume writing tips, cover letter advice, job search strategies, "
+    "interview preparation, LinkedIn profile optimization, and career guidance. "
+    "Be concise, actionable, and encouraging. "
+    "Never invent facts about the user — only use information they share with you. "
+    "If you don't know something, say so honestly."
+)
+
+
+def chat_with_assistant(
+    messages: list[dict],
+    max_tokens: int = 500,
+) -> str:
+    """Send a conversation to OpenAI and return the assistant's reply."""
+    client = get_client()
+    response = client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
+        messages=[{"role": "system", "content": CHAT_SYSTEM_PROMPT}] + messages,
+        max_tokens=max_tokens,
+        temperature=0.7,
+    )
+    return response.choices[0].message.content.strip()

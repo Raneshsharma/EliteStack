@@ -5,10 +5,10 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
 from django.http import HttpResponse
-from .models import Resume, CoverLetter
+from .models import Resume, CoverLetter, ChatMessage
 from .serializers import ResumeSerializer
-from ai.services import generate_resume_rewrites, generate_cover_letter, generate_job_match, analyze_ats_score
-from ai.rate_limiter import record_ats
+from ai.services import generate_resume_rewrites, generate_cover_letter, generate_job_match, analyze_ats_score, chat_with_assistant
+from ai.rate_limiter import record_ats, record_chat, get_chat_remaining
 from ai.rate_limiter import get_rewrite_remaining, record_rewrite, get_coverletter_remaining, record_coverletter
 
 
@@ -327,5 +327,62 @@ class ATSScoreView(APIView):
             'missing_keywords': result.get('missing_keywords', []),
             'matched_keywords': result.get('matched_keywords', []),
             'recommendations': result.get('recommendations', []),
+            'remaining': remaining,
+        })
+
+
+class ChatView(APIView):
+    """POST /api/chat/ — conversational AI chat. Free tier gets 5/day."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        profile = getattr(user, 'profile', None)
+        tier = profile.subscription_tier if profile else 'free'
+        daily_limit = settings.AI_CHAT_RATE_LIMITS.get(tier, 5)
+
+        allowed = record_chat(user.id, daily_limit)
+        if not allowed:
+            return Response(
+                {'error': 'rate_limited', 'message': 'Daily chat limit reached. Upgrade for more.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        remaining = get_chat_remaining(user.id, daily_limit)
+
+        message = request.data.get('message', '').strip()
+        if not message:
+            return Response(
+                {'error': 'validation_error', 'message': 'Message is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(message) > 2000:
+            return Response(
+                {'error': 'validation_error', 'message': 'Message must be under 2000 characters.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        conversation_id = request.data.get('conversation_id', '')
+        if not conversation_id:
+            import uuid
+            conversation_id = str(uuid.uuid4())
+
+        # Build message history from prior messages in this conversation
+        prior = ChatMessage.objects.filter(
+            user=user,
+            conversation_id=conversation_id
+        ).order_by('created_at').values('role', 'content')
+
+        messages = [{'role': m['role'], 'content': m['content']} for m in prior]
+        messages.append({'role': 'user', 'content': message})
+
+        reply = chat_with_assistant(messages)
+
+        # Persist both user message and assistant reply
+        ChatMessage.objects.create(user=user, conversation_id=conversation_id, role='user', content=message)
+        ChatMessage.objects.create(user=user, conversation_id=conversation_id, role='assistant', content=reply)
+
+        return Response({
+            'reply': reply,
+            'conversation_id': conversation_id,
             'remaining': remaining,
         })

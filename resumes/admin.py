@@ -1,7 +1,7 @@
 """Resume admin — registers all resume models to the shared placement admin site."""
 from django.contrib import admin
 from placement_copilot.admin import placement_admin_site
-from .models import Resume, ResumeEducation, ResumeExperience, ResumeProject, ResumeSkill, CoverLetter
+from .models import Resume, ResumeEducation, ResumeExperience, ResumeProject, ResumeSkill, CoverLetter, ChatMessage
 
 
 class EducationInline(admin.TabularInline):
@@ -71,9 +71,17 @@ class CoverLetterAdmin(admin.ModelAdmin):
     search_fields = ['job_title', 'company_name', 'resume__user__username']
 
 
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ['user', 'role', 'conversation_id', 'created_at']
+    list_filter = ['role', 'created_at']
+    search_fields = ['user__username', 'conversation_id', 'content']
+    readonly_fields = ['user', 'conversation_id', 'role', 'content', 'created_at']
+
+
 placement_admin_site.register(Resume, ResumeAdmin)
 placement_admin_site.register(ResumeEducation, ResumeEducationAdmin)
 placement_admin_site.register(ResumeExperience, ResumeExperienceAdmin)
 placement_admin_site.register(ResumeProject, ResumeProjectAdmin)
 placement_admin_site.register(ResumeSkill, ResumeSkillAdmin)
 placement_admin_site.register(CoverLetter, CoverLetterAdmin)
+placement_admin_site.register(ChatMessage, ChatMessageAdmin)

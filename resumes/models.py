@@ -154,3 +154,18 @@ class CoverLetter(models.Model):
 
     def __str__(self):
         return f"Cover letter for {self.job_title} at {self.company_name}"
+
+
+class ChatMessage(models.Model):
+    """Chat message for AI conversations. Grouped by conversation_id."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_messages')
+    conversation_id = models.CharField(max_length=36)  # UUID string
+    role = models.CharField(max_length=10)  # 'user' or 'assistant'
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.role}: {self.content[:50]}"
