@@ -8,6 +8,7 @@ router.register(r'api/resumes', views.ResumeViewSet, basename='resume-api')
 urlpatterns = [
     path('api/resumes/<int:resume_id>/rewrite/', ai_views.ResumeRewriteView.as_view(), name='resume_rewrite'),
     path('api/resumes/<int:resume_id>/cover-letter/', ai_views.CoverLetterGenerateView.as_view(), name='cover_letter_generate'),
+    path('api/resumes/<int:resume_id>/job-match/', ai_views.JobMatchView.as_view(), name='job_match'),
     path('api/cover-letter/<int:letter_id>/download/', ai_views.CoverLetterDownloadView.as_view(), name='cover_letter_download'),
     path('resumes/<int:resume_id>/cover-letter/', views.cover_letter_page, name='cover_letter_page'),
     path('', views.landing_page, name='landing_page'),

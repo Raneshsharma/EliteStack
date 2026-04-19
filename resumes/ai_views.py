@@ -6,7 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
 from django.http import HttpResponse
 from .models import Resume, CoverLetter
-from ai.services import generate_resume_rewrites, generate_cover_letter
+from .serializers import ResumeSerializer
+from ai.services import generate_resume_rewrites, generate_cover_letter, generate_job_match
 from ai.rate_limiter import get_rewrite_remaining, record_rewrite, get_coverletter_remaining, record_coverletter
 
 
@@ -202,3 +203,74 @@ class CoverLetterDownloadView(APIView):
                 'Content-Disposition': f'attachment; filename="cover_letter_{cl.company_name}.txt"'
             }
         )
+
+
+class JobMatchView(APIView):
+    """POST /api/resumes/<id>/job-match/ — rewrite resume sections to match a job description."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, resume_id):
+        resume = Resume.objects.filter(user=request.user, id=resume_id).first()
+        if not resume:
+            return Response({'error': 'Resume not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        tier = getattr(request.user, 'profile', None)
+        current_tier = tier.subscription_tier if tier else 'free'
+
+        if current_tier == 'free':
+            return Response(
+                {
+                    'error': 'upgrade_required',
+                    'message': 'Job Match is available on Pro and Premium plans.',
+                    'tier': current_tier,
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        job_description = request.data.get('job_description', '').strip()
+        if not job_description:
+            return Response(
+                {'error': 'job_description is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(job_description) > 5000:
+            return Response(
+                {'error': 'Job description exceeds 5,000 characters. Please paste a shorter excerpt.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(job_description) < 50:
+            return Response(
+                {'error': 'Job description is too short for accurate matching. Paste more content.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        sections_raw = request.data.get('sections', ['experience', 'skills', 'summary'])
+        if isinstance(sections_raw, str):
+            sections = [s.strip() for s in sections_raw.split(',') if s.strip()]
+        else:
+            sections = sections_raw
+
+        resume_data = serialize_resume_text(resume)
+        if not resume_data.strip():
+            return Response(
+                {'error': 'Your resume has no content. Add some information first.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = generate_job_match(resume_data, job_description, sections)
+        except Exception as e:
+            import logging
+            logging.error(f"Job match failed for user {request.user.id}: {e}")
+            return Response(
+                {'error': 'Job matching failed. Please try again.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({
+            'match_score': result.get('match_score', 0),
+            'rewritten_sections': result.get('rewritten_sections', {}),
+            'keywords_found': result.get('keywords_found', []),
+            'keywords_matched': result.get('keywords_matched', []),
+            'recommendations': result.get('recommendations', []),
+        })

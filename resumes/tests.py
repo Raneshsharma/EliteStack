@@ -1260,3 +1260,81 @@ class CoverLetterAPITests(TestCase):
         self.user.profile.save()
         response = self.client.get('/api/cover-letter/99999/download/')
         self.assertEqual(response.status_code, 404)
+
+
+class JobMatchAPITests(TestCase):
+    """Tests for Job Match API."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user('testuser', 'test@example.com', 'testpass123')
+        self.client.login(username='testuser', password='testpass123')
+        self.resume = Resume.objects.create(user=self.user, title='Test Resume')
+
+    def test_job_match_requires_auth(self):
+        """Unauthenticated POST returns 401/403."""
+        self.client.logout()
+        response = self.client.post(
+            f'/api/resumes/{self.resume.id}/job-match/',
+            {'job_description': 'Software engineer with Python skills'},
+            format='json'
+        )
+        self.assertIn(response.status_code, [401, 403])
+
+    def test_job_match_free_tier_gated(self):
+        """Free tier returns 403 with upgrade_required error."""
+        response = self.client.post(
+            f'/api/resumes/{self.resume.id}/job-match/',
+            {'job_description': 'Software engineer with Python skills'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['error'], 'upgrade_required')
+
+    def test_job_match_missing_job_description(self):
+        """Missing job_description returns 400."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        response = self.client.post(
+            f'/api/resumes/{self.resume.id}/job-match/',
+            {},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('job_description', response.json()['error'])
+
+    def test_job_match_too_long(self):
+        """Job description over 5000 chars returns 400."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        long_jd = 'x' * 5001
+        response = self.client.post(
+            f'/api/resumes/{self.resume.id}/job-match/',
+            {'job_description': long_jd},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('5,000', response.json()['error'])
+
+    def test_job_match_too_short(self):
+        """Job description under 50 chars returns 400."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        response = self.client.post(
+            f'/api/resumes/{self.resume.id}/job-match/',
+            {'job_description': 'Python developer'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('too short', response.json()['error'])
+
+    def test_job_match_nonexistent_resume(self):
+        """Non-existent resume returns 404."""
+        self.user.profile.subscription_tier = 'pro'
+        self.user.profile.save()
+        response = self.client.post(
+            '/api/resumes/99999/job-match/',
+            {'job_description': 'A job description that is long enough for validation.'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, 404)
