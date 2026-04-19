@@ -1,0 +1,505 @@
+{% extends 'base.html' %}
+{% block title %}Edit {{ resume.title }} - Placement Copilot{% endblock %}
+
+{% block content %}
+<input type="hidden" id="resume-id" value="{{ resume.id }}">
+
+<div class="flex flex-col h-[calc(100vh-64px)]">
+    <!-- Top Bar: Progress + Template Switcher -->
+    <div class="bg-white border-b px-6 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="w-48 bg-gray-200 rounded-full h-2">
+                <div id="progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: {{ progress_pct }}%"></div>
+            </div>
+            <span id="progress-text" class="text-sm text-gray-600">{{ progress_text }}</span>
+        </div>
+        <div id="template-switcher" class="flex gap-1">
+            <a href="{% url 'resume_export_pdf' resume.id %}" target="_blank"
+               class="px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Export PDF
+            </a>
+            <button class="px-3 py-1 text-sm rounded template-btn {% if resume.template_style == 'classic' %}bg-blue-600 text-white{% else %}text-gray-600 hover:bg-gray-100{% endif %}" data-template="classic">Classic</button>
+            <button class="px-3 py-1 text-sm rounded template-btn {% if resume.template_style == 'modern' %}bg-blue-600 text-white{% else %}text-gray-600 hover:bg-gray-100{% endif %}" data-template="modern">Modern</button>
+            <button class="px-3 py-1 text-sm rounded template-btn {% if resume.template_style == 'minimal' %}bg-blue-600 text-white{% else %}text-gray-600 hover:bg-gray-100{% endif %}" data-template="minimal">Minimal</button>
+        </div>
+    </div>
+
+    <!-- Main: Form + Preview -->
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Left: Form (scrollable) -->
+        <div class="w-full md:w-[55%] overflow-y-auto px-6 py-4 space-y-4">
+            {% if not user.profile.onboarding_completed %}
+                {% include 'resumes/onboarding_checklist.html' %}
+            {% endif %}
+            <form id="resume-form" method="POST" action="{% url 'resume_update' resume.id %}">
+                {% csrf_token %}
+
+                <!-- Section 1: Personal Information -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="section-header flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50 rounded-t-lg">
+                        <h2 class="text-lg font-semibold text-gray-800">Personal Information</h2>
+                        <svg class="w-5 h-5 text-gray-400 transform transition-transform section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="section-content px-4 pb-4 space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Resume Title</label>
+                            <input type="text" name="title" value="{{ resume.title|default:'' }}" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Software Engineer Resume">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <input type="text" id="id_full_name" name="full_name" value="{{ resume.full_name|default:'' }}" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="John Doe">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input type="email" id="id_email" name="email" value="{{ resume.email|default:'' }}" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="john@example.com">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                <input type="text" name="phone" value="{{ resume.phone|default:'' }}" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+1 (555) 123-4567">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                                <input type="text" name="location" value="{{ resume.location|default:'' }}" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="San Francisco, CA">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">LinkedIn</label>
+                                <input type="url" name="linkedin" value="{{ resume.linkedin|default:'' }}" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="linkedin.com/in/...">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">GitHub</label>
+                                <input type="url" name="github" value="{{ resume.github|default:'' }}" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="github.com/...">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                                <input type="url" name="website" value="{{ resume.website|default:'' }}" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="yoursite.com">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Professional Summary -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="section-header flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50">
+                        <h2 class="text-lg font-semibold text-gray-800">Professional Summary</h2>
+                        <svg class="w-5 h-5 text-gray-400 transform transition-transform section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="section-content px-4 pb-4 space-y-3">
+                        <div>
+                            <textarea name="professional_summary" id="id_professional_summary" rows="3" maxlength="500"
+                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Brief overview of your skills and career goals...">{{ resume.professional_summary|default:'' }}</textarea>
+                            <p class="text-xs text-gray-500 mt-1"><span id="summary-chars">{{ resume.professional_summary|length }}</span>/500 characters</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Experience -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="section-header flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50">
+                        <h2 class="text-lg font-semibold text-gray-800">Experience</h2>
+                        <svg class="w-5 h-5 text-gray-400 transform transition-transform section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="section-content px-4 pb-4 space-y-3" id="experience-entries">
+                        {% for exp in resume.experience.all %}
+                        <div class="entry-card bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="entry-title text-sm font-medium text-gray-700">{{ exp.job_title|default:'Experience Entry' }}</span>
+                                <button type="button" class="text-red-500 text-xs hover:text-red-700 delete-entry">Delete</button>
+                            </div>
+                            <div class="space-y-2">
+                                <input type="text" name="experience_company" value="{{ exp.company }}" placeholder="Company" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="text" name="experience_title" value="{{ exp.job_title }}" placeholder="Job Title" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="text" name="experience_location" value="{{ exp.location|default:'' }}" placeholder="Location" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <div class="flex gap-2">
+                                    <input type="date" name="experience_start" value="{{ exp.start_date|date:'Y-m-d' }}" class="w-1/2 px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <input type="date" name="experience_end" value="{{ exp.end_date|date:'Y-m-d'|default:'' }}" class="w-1/2 px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input type="checkbox" name="experience_is_current" class="rounded" {% if exp.is_current %}checked{% endif %}> Currently working here
+                                </label>
+                                <textarea name="experience_desc" rows="3" placeholder="Description (one bullet per line)" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ exp.description }}</textarea>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-sm text-gray-400 py-2" id="experience-empty">No experience entries yet. Click 'Add Experience' below.</p>
+                        {% endfor %}
+                    </div>
+                    <div class="px-4 pb-4">
+                        <button type="button" class="text-sm text-blue-600 hover:text-blue-700 add-entry-btn" data-section="experience">+ Add Experience</button>
+                    </div>
+                </div>
+
+                <!-- Section 4: Education -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="section-header flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50">
+                        <h2 class="text-lg font-semibold text-gray-800">Education</h2>
+                        <svg class="w-5 h-5 text-gray-400 transform transition-transform section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="section-content px-4 pb-4 space-y-3" id="education-entries">
+                        {% for edu in resume.education.all %}
+                        <div class="entry-card bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="entry-title text-sm font-medium text-gray-700">{{ edu.school|default:'Education Entry' }}</span>
+                                <button type="button" class="text-red-500 text-xs hover:text-red-700 delete-entry">Delete</button>
+                            </div>
+                            <div class="space-y-2">
+                                <input type="text" name="education_school" value="{{ edu.school }}" placeholder="School/University" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="text" name="education_degree" value="{{ edu.degree }}" placeholder="Degree (e.g. B.S.)" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="text" name="education_field" value="{{ edu.field_of_study|default:'' }}" placeholder="Field of Study" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <div class="flex gap-2">
+                                    <input type="date" name="education_start" value="{{ edu.start_date|date:'Y-m-d' }}" class="w-1/2 px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <input type="date" name="education_end" value="{{ edu.end_date|date:'Y-m-d'|default:'' }}" class="w-1/2 px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <input type="text" name="education_gpa" value="{{ edu.gpa|default:'' }}" placeholder="GPA (optional)" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <textarea name="education_desc" rows="2" placeholder="Description (achievements, coursework...)" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ edu.description }}</textarea>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-sm text-gray-400 py-2" id="education-empty">No education entries yet. Click 'Add Education' below.</p>
+                        {% endfor %}
+                    </div>
+                    <div class="px-4 pb-4">
+                        <button type="button" class="text-sm text-blue-600 hover:text-blue-700 add-entry-btn" data-section="education">+ Add Education</button>
+                    </div>
+                </div>
+
+                <!-- Section 5: Projects -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="section-header flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50">
+                        <h2 class="text-lg font-semibold text-gray-800">Projects</h2>
+                        <svg class="w-5 h-5 text-gray-400 transform transition-transform section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="section-content px-4 pb-4 space-y-3" id="project-entries">
+                        {% for project in resume.projects.all %}
+                        <div class="entry-card bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="entry-title text-sm font-medium text-gray-700">{{ project.name|default:'Project Entry' }}</span>
+                                <button type="button" class="text-red-500 text-xs hover:text-red-700 delete-entry">Delete</button>
+                            </div>
+                            <div class="space-y-2">
+                                <input type="text" name="project_name" value="{{ project.name }}" placeholder="Project Name" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="text" name="project_role" value="{{ project.role|default:'' }}" placeholder="Your Role (optional)" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <div class="flex gap-2">
+                                    <input type="date" name="project_start" value="{{ project.start_date|date:'Y-m-d'|default:'' }}" class="w-1/2 px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <input type="date" name="project_end" value="{{ project.end_date|date:'Y-m-d'|default:'' }}" class="w-1/2 px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <input type="url" name="project_url" value="{{ project.url|default:'' }}" placeholder="URL (optional)" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <textarea name="project_desc" rows="3" placeholder="Description" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ project.description }}</textarea>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-sm text-gray-400 py-2" id="project-empty">No project entries yet. Click 'Add Project' below.</p>
+                        {% endfor %}
+                    </div>
+                    <div class="px-4 pb-4">
+                        <button type="button" class="text-sm text-blue-600 hover:text-blue-700 add-entry-btn" data-section="project">+ Add Project</button>
+                    </div>
+                </div>
+
+                <!-- Section 6: Skills -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="section-header flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50">
+                        <h2 class="text-lg font-semibold text-gray-800">Skills</h2>
+                        <svg class="w-5 h-5 text-gray-400 transform transition-transform section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="section-content px-4 pb-4 space-y-2" id="skill-entries">
+                        {% for skill in resume.skills.all %}
+                        <div class="entry-card skill-tag bg-blue-50 rounded px-3 py-2 flex items-center justify-between gap-2 border border-blue-100">
+                            <input type="text" name="skill_name" value="{{ skill.name }}" placeholder="Skill name" class="flex-1 text-sm text-blue-800 bg-transparent border-none outline-none">
+                            <select name="skill_proficiency" class="text-sm border border-blue-200 rounded px-1 py-0.5 bg-white">
+                                <option value="">Proficiency</option>
+                                <option value="Beginner" {% if skill.proficiency == 'Beginner' %}selected{% endif %}>Beginner</option>
+                                <option value="Intermediate" {% if skill.proficiency == 'Intermediate' %}selected{% endif %}>Intermediate</option>
+                                <option value="Advanced" {% if skill.proficiency == 'Advanced' %}selected{% endif %}>Advanced</option>
+                                <option value="Expert" {% if skill.proficiency == 'Expert' %}selected{% endif %}>Expert</option>
+                            </select>
+                            <button type="button" class="text-red-500 hover:text-red-700 delete-entry text-lg leading-none">&times;</button>
+                        </div>
+                        {% empty %}
+                        <p class="text-sm text-gray-400 py-2" id="skill-empty">No skills added yet. Click 'Add Skill' below.</p>
+                        {% endfor %}
+                    </div>
+                    <div class="px-4 pb-4">
+                        <button type="button" class="text-sm text-blue-600 hover:text-blue-700 add-entry-btn" data-section="skill">+ Add Skill</button>
+                    </div>
+                </div>
+
+                <!-- Save Button -->
+                <div class="flex justify-end gap-3 py-4">
+                    <a href="{% url 'resume_list' %}" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Cancel</a>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">Save Changes</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right: Live Preview -->
+        <div id="preview-panel" class="hidden md:block md:w-[45%] bg-gray-100 overflow-y-auto p-4 border-l">
+            <!-- Preview loads here via JS on page load -->
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
+
+<!-- AI Rewrite Floating Toolbar -->
+<div id="ai-toolbar" class="fixed z-50 hidden bg-white border border-blue-300 rounded-lg shadow-lg p-2 flex gap-2 items-center" style="min-width: 200px;">
+    <button id="ai-rewrite-btn" type="button"
+            class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center gap-1.5">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Rewrite with AI
+    </button>
+</div>
+
+<!-- AI Rewrite Modal -->
+<div id="ai-rewrite-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/50" id="ai-modal-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+            <!-- Header -->
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 class="text-lg font-bold text-gray-900">AI Rewrite Suggestions</h3>
+                <button id="ai-modal-close" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <!-- Original text (collapsed) -->
+            <div class="px-4 pt-3">
+                <button id="ai-original-toggle" type="button" class="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    Original text
+                </button>
+                <div id="ai-original-text" class="hidden mt-2 p-3 bg-gray-50 rounded-lg text-sm text-gray-600 italic"></div>
+            </div>
+            <!-- Loading -->
+            <div id="ai-rewrite-loading" class="hidden px-4 py-8 text-center">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-200 border-t-blue-600"></div>
+                <p class="mt-3 text-gray-600 text-sm">Generating rewrites...</p>
+            </div>
+            <!-- Rewrite alternatives -->
+            <div id="ai-rewrite-options" class="hidden px-4 py-3 space-y-3"></div>
+            <!-- Error -->
+            <div id="ai-rewrite-error" class="hidden px-4 py-6 text-center">
+                <p class="text-red-600 text-sm" id="ai-error-message"></p>
+                <button id="ai-retry-btn" class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">Try Again</button>
+            </div>
+            <!-- Footer -->
+            <div class="p-4 border-t flex justify-between items-center">
+                <span id="ai-remaining-text" class="text-xs text-gray-400"></span>
+                <button id="ai-regenerate-btn" type="button"
+                        class="hidden px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm">
+                    Regenerate
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upgrade Modal (Free tier) -->
+<div id="upgrade-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/50" id="upgrade-modal-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 text-center">
+            <div class="text-4xl mb-3">⭐</div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Unlock AI Rewrite</h3>
+            <p class="text-gray-600 mb-1">AI Resume Rewrite is available on <strong>Pro</strong> and <strong>Premium</strong> plans.</p>
+            <p class="text-gray-500 text-sm mb-6">Upgrade to get 20–50 AI rewrites per day.</p>
+            <div class="flex gap-3 justify-center">
+                <a href="/#pricing" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm">See Plans</a>
+                <button id="upgrade-close-btn" class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm">Maybe Later</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// CSRF helper
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Toast helper
+function showToast(message, type) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    const colors = { success: 'bg-green-100 border-green-400 text-green-800', error: 'bg-red-100 border-red-400 text-red-800', info: 'bg-blue-100 border-blue-400 text-blue-800' };
+    toast.className = 'px-4 py-3 rounded border shadow-sm text-sm ' + (colors[type] || colors.info);
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), type === 'success' ? 2000 : 4000);
+}
+
+// Progress indicator
+function updateProgress() {
+    const sections = {
+        personal: function() { var el = document.getElementById('id_full_name'); return el && el.value.trim() !== ''; },
+        education: function() { return document.querySelectorAll('#education-entries .entry-card').length > 0; },
+        experience: function() { return document.querySelectorAll('#experience-entries .entry-card').length > 0; },
+        projects: function() { return document.querySelectorAll('#project-entries .entry-card').length > 0; },
+        skills: function() { return document.querySelectorAll('#skill-entries .entry-card').length > 0; },
+    };
+    var complete = 0;
+    for (var key in sections) { if (sections[key]()) complete++; }
+    var pct = (complete / 5) * 100;
+    var bar = document.getElementById('progress-bar');
+    if (bar) bar.style.width = pct + '%';
+    var text = document.getElementById('progress-text');
+    if (text) text.textContent = complete + ' of 5 sections complete';
+}
+
+// Section collapse/expand
+document.querySelectorAll('.section-header').forEach(function(header) {
+    header.addEventListener('click', function() {
+        var content = header.nextElementSibling;
+        content.classList.toggle('hidden');
+        var chevron = header.querySelector('.section-chevron');
+        if (chevron) chevron.classList.toggle('rotate-180');
+    });
+});
+
+// Initial preview load
+(function() {
+    var resumeId = document.getElementById('resume-id').value;
+    fetch('/resumes/' + resumeId + '/preview-fragment/')
+        .then(function(r) { return r.text(); })
+        .then(function(html) { document.getElementById('preview-panel').innerHTML = html; })
+        .catch(function() {});
+})();
+
+// Live preview (300ms debounce)
+var previewTimeout;
+document.addEventListener('input', function(e) {
+    if (e.target.matches('input, textarea, select')) {
+        clearTimeout(previewTimeout);
+        previewTimeout = setTimeout(updatePreview, 300);
+        updateProgress();
+        scheduleAutoSave();
+    }
+});
+
+function updatePreview() {
+    var resumeId = document.getElementById('resume-id').value;
+    fetch('/resumes/' + resumeId + '/preview-fragment/')
+        .then(function(r) { return r.text(); })
+        .then(function(html) { document.getElementById('preview-panel').innerHTML = html; })
+        .catch(function() {});
+}
+
+// Auto-save (30s debounce + retry)
+var saveTimeout;
+var isDirty = false;
+
+function scheduleAutoSave() {
+    isDirty = true;
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(autoSave, 30000);
+}
+
+function autoSave() {
+    if (!isDirty) return;
+    showToast('Saving...', 'info');
+    var form = document.getElementById('resume-form');
+    var formData = new FormData(form);
+    var resumeId = document.getElementById('resume-id').value;
+    var data = {};
+    formData.forEach(function(value, key) { if (key !== 'csrfmiddlewaretoken') data[key] = value; });
+    fetch('/api/resumes/' + resumeId + '/', {
+        method: 'PATCH',
+        headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    })
+    .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function() { showToast('Saved', 'success'); isDirty = false; })
+    .catch(function() { showToast('Save failed. Retrying...', 'error'); setTimeout(autoSave, 5000); });
+}
+
+// Template switching
+document.querySelectorAll('.template-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var template = this.dataset.template;
+        var resumeId = document.getElementById('resume-id').value;
+        fetch('/api/resumes/' + resumeId + '/', {
+            method: 'PATCH',
+            headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ template_style: template }),
+        }).then(function() { updatePreview(); }).catch(function() {});
+        document.querySelectorAll('.template-btn').forEach(function(b) { b.classList.remove('bg-blue-600', 'text-white'); b.classList.add('text-gray-600'); });
+        this.classList.remove('text-gray-600');
+        this.classList.add('bg-blue-600', 'text-white');
+    });
+});
+
+// Summary character counter
+(function() {
+    var summaryField = document.getElementById('id_professional_summary');
+    var summaryChars = document.getElementById('summary-chars');
+    if (summaryField && summaryChars) {
+        summaryField.addEventListener('input', function() { summaryChars.textContent = summaryField.value.length; });
+    }
+})();
+
+// Entry templates
+var entryTemplates = {
+    experience: '<div class="entry-card bg-gray-50 rounded-lg p-3 border border-gray-200"><div class="flex justify-between items-center mb-2"><span class="entry-title text-sm font-medium text-gray-700">New Experience</span><button type="button" class="text-red-500 text-xs hover:text-red-700 delete-entry">Delete</button></div><div class="space-y-2"><input type="text" name="experience_company" placeholder="Company" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><input type="text" name="experience_title" placeholder="Job Title" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><input type="text" name="experience_location" placeholder="Location" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><div class="flex gap-2"><input type="date" name="experience_start" class="w-1/2 px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><input type="date" name="experience_end" class="w-1/2 px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></div><label class="flex items-center gap-2 text-sm"><input type="checkbox" name="experience_is_current" class="rounded"> Currently working here</label><textarea name="experience_desc" rows="3" placeholder="Description (one bullet per line)" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea></div></div>',
+    education: '<div class="entry-card bg-gray-50 rounded-lg p-3 border border-gray-200"><div class="flex justify-between items-center mb-2"><span class="entry-title text-sm font-medium text-gray-700">New Education</span><button type="button" class="text-red-500 text-xs hover:text-red-700 delete-entry">Delete</button></div><div class="space-y-2"><input type="text" name="education_school" placeholder="School/University" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><input type="text" name="education_degree" placeholder="Degree (e.g. B.S.)" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><input type="text" name="education_field" placeholder="Field of Study" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><div class="flex gap-2"><input type="date" name="education_start" class="w-1/2 px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><input type="date" name="education_end" class="w-1/2 px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></div><input type="text" name="education_gpa" placeholder="GPA (optional)" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><textarea name="education_desc" rows="2" placeholder="Description (achievements, coursework...)" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea></div></div>',
+    project: '<div class="entry-card bg-gray-50 rounded-lg p-3 border border-gray-200"><div class="flex justify-between items-center mb-2"><span class="entry-title text-sm font-medium text-gray-700">New Project</span><button type="button" class="text-red-500 text-xs hover:text-red-700 delete-entry">Delete</button></div><div class="space-y-2"><input type="text" name="project_name" placeholder="Project Name" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><input type="text" name="project_role" placeholder="Your Role (optional)" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><div class="flex gap-2"><input type="date" name="project_start" class="w-1/2 px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><input type="date" name="project_end" class="w-1/2 px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></div><input type="url" name="project_url" placeholder="URL (optional)" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><textarea name="project_desc" rows="3" placeholder="Description" class="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea></div></div>',
+    skill: '<div class="entry-card skill-tag bg-blue-50 rounded px-3 py-2 flex items-center justify-between gap-2 border border-blue-100"><input type="text" name="skill_name" placeholder="Skill name" class="flex-1 text-sm text-blue-800 bg-transparent border-none outline-none"><select name="skill_proficiency" class="text-sm border border-blue-200 rounded px-1 py-0.5 bg-white"><option value="">Proficiency</option><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option><option value="Expert">Expert</option></select><button type="button" class="text-red-500 hover:text-red-700 delete-entry text-lg leading-none">&times;</button></div>',
+};
+
+// Add entry button handlers
+document.querySelectorAll('.add-entry-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var section = this.dataset.section;
+        var container = document.getElementById(section + '-entries');
+        var emptyMsg = container.querySelector('p.text-gray-400');
+        if (emptyMsg) emptyMsg.remove();
+        var wrapper = document.createElement('div');
+        wrapper.innerHTML = entryTemplates[section];
+        var card = wrapper.firstElementChild;
+        container.appendChild(card);
+        card.querySelector('.delete-entry').addEventListener('click', function() { card.remove(); updateProgress(); });
+        card.querySelectorAll('input, textarea, select').forEach(function(field) {
+            field.addEventListener('input', function() {
+                clearTimeout(previewTimeout);
+                previewTimeout = setTimeout(updatePreview, 300);
+                updateProgress();
+                scheduleAutoSave();
+            });
+        });
+        updateProgress();
+        var firstInput = card.querySelector('input[type="text"]');
+        if (firstInput) firstInput.focus();
+    });
+});
+
+// Delete button handlers for existing entries
+document.querySelectorAll('.delete-entry').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var card = this.closest('.entry-card');
+        if (card) { card.remove(); updateProgress(); }
+    });
+});
+
+// Init
+updateProgress();
+</script>
+{% endblock %}

@@ -1,0 +1,94 @@
+/* Landing Page Styles */
+:root {
+    --primary-bg: #8B6BA9;
+    --secondary-bg: #E8E0F0;
+    --surface: #FDFBF9;
+    --cta: #6B4C9A;
+    --accent: #FF7F6B;
+    --text-primary: #2D2D3A;
+    --text-secondary: #6B6B7B;
+    --success: #4ECDC4;
+}
+
+/* Custom Colors */
+.bg-coral { background-color: var(--accent); }
+.bg-soft-lavender { background-color: var(--secondary-bg); }
+.bg-cream { background-color: var(--surface); }
+.bg-primary { background-color: var(--primary-bg); }
+.bg-cta { background-color: var(--cta); }
+.text-coral { color: var(--accent); }
+
+/* Navigation */
+#navbar {
+    transition: background-color 0.3s ease;
+}
+#navbar.scrolled {
+    background-color: var(--surface);
+    box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+}
+#navbar.scrolled a {
+    color: var(--text-primary) !important;
+}
+
+/* Journey Cards - hidden initially */
+.journey-card {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.journey-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Testimonial Cards - hidden initially */
+.testimonial-card {
+    opacity: 0;
+    transform: scale(0.95);
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.testimonial-card.visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Feature Badges - hidden initially */
+.feature-badge {
+    opacity: 0;
+    transform: rotate(-5deg);
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.feature-badge.visible {
+    opacity: 1;
+    transform: rotate(0deg);
+}
+
+/* Hover effects */
+.journey-card:hover {
+    transform: translateY(-5px);
+}
+
+/* FAQ Accordion */
+.faq-item {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.faq-item.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+/* AI Rewrite Modal */
+#ai-rewrite-options .rewrite-card {
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px;
+    transition: border-color 0.2s;
+}
+#ai-rewrite-options .rewrite-card:hover {
+    border-color: #93c5fd;
+}
+#ai-rewrite-options .rewrite-card.selected {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
