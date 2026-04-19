@@ -7,4 +7,3 @@ djangorestframework
 reportlab
 openai
 gunicorn
-whitenoise
