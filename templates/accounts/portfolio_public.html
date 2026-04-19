@@ -1,0 +1,88 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ portfolio.title }} | {{ portfolio.user.username }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/landing.css' %}">
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .theme-minimal { background: #f9f9f9; }
+        .theme-professional { background: #1e293b; color: white; }
+        .theme-creative { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+    </style>
+</head>
+<body class="min-h-screen {% if portfolio.theme == 'minimal' %}theme-minimal{% elif portfolio.theme == 'professional' %}theme-professional{% else %}theme-creative{% endif %}">
+    <div class="max-w-3xl mx-auto px-4 py-16">
+
+        <!-- Profile Header -->
+        <div class="text-center mb-10">
+            <div class="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-3xl font-bold">
+                {{ portfolio.user.username|slice:":1"|upper }}
+            </div>
+            <h1 class="text-3xl font-bold mb-1 {% if portfolio.theme == 'professional' %}text-white{% elif portfolio.theme == 'creative' %}text-white{% else %}text-gray-900{% endif %}">
+                {{ portfolio.user.get_full_name|default:portfolio.user.username }}
+            </h1>
+            {% if portfolio.headline %}
+            <p class="text-lg {% if portfolio.theme == 'professional' %}text-blue-200{% elif portfolio.theme == 'creative' %}text-blue-100{% else %}text-gray-500{% endif %} mb-2">
+                {{ portfolio.headline }}
+            </p>
+            {% endif %}
+            {% if portfolio.bio %}
+            <p class="{% if portfolio.theme == 'professional' %}text-gray-300{% elif portfolio.theme == 'creative' %}text-white{% else %}text-gray-600{% endif %} max-w-xl mx-auto leading-relaxed">
+                {{ portfolio.bio }}
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- Links -->
+        {% if portfolio.website_url or portfolio.github_url or portfolio.linkedin_url %}
+        <div class="flex justify-center gap-4 mb-10 flex-wrap">
+            {% if portfolio.website_url %}
+            <a href="{{ portfolio.website_url }}" target="_blank" class="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-gray-100 {% if portfolio.theme == 'professional' %}border-blue-400 text-blue-200 hover:bg-blue-900{% elif portfolio.theme == 'creative' %}bg-white text-purple-700 hover:bg-purple-50{% else %}border-gray-300 text-gray-700{% endif %}">
+                🌐 Website
+            </a>
+            {% endif %}
+            {% if portfolio.github_url %}
+            <a href="{{ portfolio.github_url }}" target="_blank" class="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-gray-100 {% if portfolio.theme == 'professional' %}border-blue-400 text-blue-200 hover:bg-blue-900{% elif portfolio.theme == 'creative' %}bg-white text-purple-700 hover:bg-purple-50{% else %}border-gray-300 text-gray-700{% endif %}">
+                💻 GitHub
+            </a>
+            {% endif %}
+            {% if portfolio.linkedin_url %}
+            <a href="{{ portfolio.linkedin_url }}" target="_blank" class="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-gray-100 {% if portfolio.theme == 'professional' %}border-blue-400 text-blue-200 hover:bg-blue-900{% elif portfolio.theme == 'creative' %}bg-white text-purple-700 hover:bg-purple-50{% else %}border-gray-300 text-gray-700{% endif %}">
+                💼 LinkedIn
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Resumes -->
+        <h2 class="{% if portfolio.theme == 'professional' %}text-white{% elif portfolio.theme == 'creative' %}text-white{% else %}text-gray-900{% endif %} text-xl font-semibold mb-4">My Resumes</h2>
+        {% if resumes %}
+        <div class="space-y-4">
+            {% for resume in resumes %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h3 class="font-semibold text-gray-900">{{ resume.title }}</h3>
+                        <p class="text-sm text-gray-500 mt-1">Updated {{ resume.updated_at|date:"M d, Y" }}</p>
+                    </div>
+                    <a href="{% url 'resume_preview' resume.id %}" class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                        View
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-400">No resumes available yet.</p>
+        {% endif %}
+
+        <div class="text-center mt-12 text-xs {% if portfolio.theme == 'professional' %}text-gray-400{% elif portfolio.theme == 'creative' %}text-white/60{% else %}text-gray-400{% endif %}">
+            Built with Placement Copilot
+        </div>
+    </div>
+</body>
+</html>

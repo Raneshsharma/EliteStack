@@ -54,6 +54,7 @@
                     <a href="{% url 'template_gallery' %}" class="text-gray-600 hover:text-gray-900{% if request.resolver_match.url_name == 'template_gallery' %} text-blue-600{% endif %}">Templates</a>
                     <a href="{% url 'salary_calculator' %}" class="text-gray-600 hover:text-gray-900">Salary Calculator</a>
                     <a href="{% url 'settings' %}" class="text-gray-600 hover:text-gray-900">Settings</a>
+                    <a href="{% url 'portfolio_page' %}" class="text-gray-600 hover:text-gray-900">Portfolio</a>
                     <a href="{% url 'logout' %}" class="text-gray-600 hover:text-gray-900">Logout</a>
                 {% else %}
                     <a href="{% url 'login' %}" class="text-gray-600 hover:text-gray-900">Login</a>

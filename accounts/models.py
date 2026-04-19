@@ -61,3 +61,34 @@ def save_user_profile(sender, instance, **kwargs):
     """Save UserProfile whenever User is saved, if it exists."""
     if hasattr(instance, 'profile'):
         instance.profile.save()
+
+
+class Portfolio(models.Model):
+    """A public portfolio page for a user."""
+    THEME_CHOICES = [
+        ('minimal', 'Minimal'),
+        ('professional', 'Professional'),
+        ('creative', 'Creative'),
+    ]
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='portfolio'
+    )
+    title = models.CharField(max_length=200, default='My Portfolio')
+    headline = models.CharField(max_length=200, blank=True)
+    bio = models.TextField(max_length=1000, blank=True)
+    website_url = models.URLField(max_length=200, blank=True)
+    github_url = models.URLField(max_length=200, blank=True)
+    linkedin_url = models.URLField(max_length=200, blank=True)
+    theme = models.CharField(max_length=20, choices=THEME_CHOICES, default='professional')
+    is_published = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def public_url(self):
+        return f"/u/{self.user.username}/"

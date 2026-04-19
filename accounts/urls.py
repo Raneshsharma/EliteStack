@@ -7,6 +7,7 @@ from django.contrib.auth.views import (
 )
 from . import views
 from . import settings_views
+from . import onboarding_views
 
 urlpatterns = [
     # Auth
@@ -32,7 +33,11 @@ urlpatterns = [
     ), name='password_reset_confirm'),
     # Settings
     path('settings/', settings_views.settings, name='settings'),
-    path('settings/profile/', settings_views.settings_profile, name='settings_profile'),
-    path('settings/password/', settings_views.settings_password, name='settings_password'),
     path('settings/delete/', settings_views.settings_delete_account, name='settings_delete_account'),
+    # Onboarding
+    path('onboarding/skip/', onboarding_views.onboarding_skip, name='onboarding_skip'),
+    # Portfolio
+    path('portfolio/', views.portfolio_page, name='portfolio_page'),
+    path('portfolio/save/', views.portfolio_update, name='portfolio_update'),
+    path('u/<str:username>/', views.portfolio_public, name='portfolio_public'),
 ]
