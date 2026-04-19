@@ -607,3 +607,15 @@ def cover_letter_page(request, resume_id):
         'remaining': remaining,
         'limit': daily_limit,
     })
+
+
+@login_required
+def job_match_page(request, resume_id):
+    """Job Match page — paste a job description and rewrite resume sections."""
+    resume = _get_user_resume_or_403(request, resume_id)
+    tier = getattr(request.user, 'profile', None)
+    current_tier = tier.subscription_tier if tier else 'free'
+    return render(request, 'resumes/job_match.html', {
+        'resume': resume,
+        'tier': current_tier,
+    })
