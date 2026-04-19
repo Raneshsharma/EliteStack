@@ -1,0 +1,57 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block content %}
+<div id="content-main">
+
+    {# Platform Stats Dashboard #}
+    {% if platform_stats %}
+    <div class="module" style="background:#f8f9fa;border:1px solid #ddd;border-radius:4px;padding:16px;margin-bottom:20px;">
+        <h2 style="margin:0 0 12px 0;font-size:14px;font-weight:bold;color:#333;">Platform Overview</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+            <div style="background:#fff;border:1px solid #e0e0e0;border-radius:4px;padding:12px;text-align:center;">
+                <div style="font-size:24px;font-weight:bold;color:#1976d2;">{{ platform_stats.total_users }}</div>
+                <div style="font-size:12px;color:#666;margin-top:4px;">Total Users</div>
+            </div>
+            <div style="background:#fff;border:1px solid #e0e0e0;border-radius:4px;padding:12px;text-align:center;">
+                <div style="font-size:24px;font-weight:bold;color:#388e3c;">{{ platform_stats.total_resumes }}</div>
+                <div style="font-size:12px;color:#666;margin-top:4px;">Total Resumes</div>
+            </div>
+            <div style="background:#fff;border:1px solid #e0e0e0;border-radius:4px;padding:12px;text-align:center;">
+                <div style="font-size:24px;font-weight:bold;color:#1976d2;">+{{ platform_stats.users_this_week }}</div>
+                <div style="font-size:12px;color:#666;margin-top:4px;">New Users (7d)</div>
+            </div>
+            <div style="background:#fff;border:1px solid #e0e0e0;border-radius:4px;padding:12px;text-align:center;">
+                <div style="font-size:24px;font-weight:bold;color:#388e3c;">+{{ platform_stats.resumes_this_week }}</div>
+                <div style="font-size:12px;color:#666;margin-top:4px;">New Resumes (7d)</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Existing app list #}
+    {% if app_list %}
+        {% for app in app_list %}
+        <div class="module">
+        <table caption-side="top">
+            <caption>
+                <a href="{{ app.app_url }}" class="section">{{ app.name }}</a>
+            </caption>
+            {% for model in app.models %}
+            <tr>
+                <th scope="row">{{ model.name }}</th>
+                {% if model.admin_url %}
+                <td><a href="{{ model.admin_url }}" class="changelink">Change</a></td>
+                {% else %}
+                <td></td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </table>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>{% translate 'You do not have permission to view or edit anything.' %}</p>
+    {% endif %}
+</div>
+{% endblock %}

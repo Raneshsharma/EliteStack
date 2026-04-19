@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load resume_extras %}
+{% block title %}Dashboard - Placement Copilot{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto mt-8 px-4 pb-12">
+    <!-- Stats Widget -->
+    {% include 'resumes/widgets/stats_widget.html' %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Resume Cards (2/3 width) -->
+        <div class="lg:col-span-2">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Your Resumes</h2>
+
+            {% if resumes %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for resume in resumes %}
+                    {% include 'resumes/widgets/resume_card.html' %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="bg-white rounded-lg shadow-md p-12 text-center">
+                <div class="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">No resumes yet</h3>
+                <p class="text-gray-500 mb-6">Create your first resume and take the next step in your career.</p>
+                <a href="{% url 'resume_create' %}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
+                    Create your first resume
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Activity Feed (1/3 width) -->
+        <div class="lg:col-span-1">
+            {% include 'resumes/widgets/activity_feed.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Resume Templates - Placement Copilot{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4">
+    <!-- Header -->
+    <div class="text-center mb-10">
+        <h1 class="text-3xl font-bold text-gray-900 mb-3">Resume Templates</h1>
+        <p class="text-gray-600 max-w-2xl mx-auto">
+            Choose from our professionally designed templates. All templates are ATS-friendly and work with any industry.
+        </p>
+    </div>
+
+    <!-- Template Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+        {% for template in templates %}
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+            <!-- Preview Area -->
+            <div class="h-80 bg-gray-100 overflow-hidden relative">
+                <iframe
+                    src="{% url 'template_preview' template.id %}"
+                    class="w-full h-full border-0"
+                    title="{{ template.name }} template preview"
+                    loading="lazy"
+                ></iframe>
+            </div>
+
+            <!-- Template Info -->
+            <div class="p-6">
+                <div class="flex items-start justify-between mb-2">
+                    <h2 class="text-xl font-bold text-gray-900">{{ template.name }}</h2>
+                    {% if template.ats_friendly %}
+                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">ATS ✓</span>
+                    {% endif %}
+                </div>
+                <p class="text-gray-600 text-sm mb-3">{{ template.description }}</p>
+                <p class="text-xs text-gray-400 mb-4">
+                    <span class="font-medium">Best for:</span> {{ template.best_for }}
+                </p>
+                <a href="{% url 'resume_create' %}?template={{ template.id }}"
+                   class="block w-full text-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+                    Use This Template
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Info Banner -->
+    <div class="bg-blue-50 rounded-xl p-6 text-center">
+        <p class="text-sm text-blue-800">
+            All templates support both US Letter and A4 paper sizes. You can switch templates anytime in the builder without losing your content.
+        </p>
+    </div>
+</div>
+{% endblock %}

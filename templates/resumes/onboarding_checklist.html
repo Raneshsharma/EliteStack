@@ -1,0 +1,113 @@
+{% load resume_extras %}
+
+<div id="onboarding-checklist" class="bg-white rounded-lg shadow-md p-4 mb-4">
+    <div class="flex justify-between items-center mb-3">
+        <h3 class="text-sm font-semibold text-gray-700">Getting Started</h3>
+        <button id="checklist-collapse" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </button>
+    </div>
+    <ul class="space-y-2 text-sm" id="checklist-items">
+        <li data-section="personal" class="flex items-center gap-2 text-gray-500">
+            <span class="checklist-icon">○</span>
+            Add your personal info
+        </li>
+        <li data-section="experience" class="flex items-center gap-2 text-gray-500">
+            <span class="checklist-icon">○</span>
+            Add work experience
+        </li>
+        <li data-section="education" class="flex items-center gap-2 text-gray-500">
+            <span class="checklist-icon">○</span>
+            Add education
+        </li>
+        <li data-section="skills" class="flex items-center gap-2 text-gray-500">
+            <span class="checklist-icon">○</span>
+            Add skills
+        </li>
+        <li data-section="preview" class="flex items-center gap-2 text-gray-500">
+            <span class="checklist-icon">○</span>
+            Preview & export
+        </li>
+    </ul>
+    <div id="checklist-complete" class="hidden mt-3 p-2 bg-green-50 rounded text-green-700 text-sm font-medium text-center">
+        You're all set! Great resume ready.
+    </div>
+</div>
+
+<script>
+(function() {
+    var checklist = document.getElementById('onboarding-checklist');
+    if (!checklist) return;
+
+    var collapseBtn = document.getElementById('checklist-collapse');
+    var items = document.querySelectorAll('#checklist-items li');
+
+    function updateChecklist() {
+        var allDone = true;
+        items.forEach(function(item) {
+            var section = item.dataset.section;
+            var done = false;
+            if (section === 'personal') {
+                var name = document.querySelector('#id_full_name');
+                var email = document.querySelector('#id_email');
+                done = name && name.value.trim() && email && email.value.trim();
+            } else if (section === 'experience') {
+                var expSection = document.querySelector('.experience-section');
+                done = expSection && expSection.querySelectorAll('input[name="experience_company"]').length > 0;
+            } else if (section === 'education') {
+                var eduSection = document.querySelector('.education-section');
+                done = eduSection && eduSection.querySelectorAll('input[name="education_school"]').length > 0;
+            } else if (section === 'skills') {
+                var skillSection = document.querySelector('.skills-section');
+                done = skillSection && skillSection.querySelectorAll('input[name="skill_name"]').length > 0;
+            } else if (section === 'preview') {
+                done = false;
+            }
+            var icon = item.querySelector('.checklist-icon');
+            if (done) {
+                icon.textContent = '✓';
+                item.classList.remove('text-gray-500');
+                item.classList.add('text-green-600', 'font-medium');
+            } else {
+                icon.textContent = '○';
+                item.classList.add('text-gray-500');
+                item.classList.remove('text-green-600', 'font-medium');
+                allDone = false;
+            }
+        });
+        var completeMsg = document.getElementById('checklist-complete');
+        if (completeMsg) {
+            completeMsg.classList.toggle('hidden', !allDone);
+        }
+    }
+
+    // Attach input listeners
+    ['#id_full_name', '#id_email', '#id_phone'].forEach(function(sel) {
+        var el = document.querySelector(sel);
+        if (el) el.addEventListener('input', updateChecklist);
+    });
+
+    // Observe dynamic sections for added entries
+    ['experience', 'education', 'skills'].forEach(function(section) {
+        var sectionEl = document.querySelector('.' + section + '-section');
+        if (sectionEl) {
+            var observer = new MutationObserver(updateChecklist);
+            observer.observe(sectionEl, { childList: true, subtree: true });
+        }
+    });
+
+    // Collapse toggle
+    if (collapseBtn) {
+        collapseBtn.addEventListener('click', function() {
+            var list = document.getElementById('checklist-items');
+            var complete = document.getElementById('checklist-complete');
+            var isHidden = list.classList.toggle('hidden');
+            if (complete) complete.classList.toggle('hidden', isHidden || complete.classList.contains('hidden'));
+        });
+    }
+
+    updateChecklist();
+})();
+</script>

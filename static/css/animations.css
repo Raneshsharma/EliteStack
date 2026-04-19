@@ -1,0 +1,134 @@
+/* Floating Shapes Animation */
+@keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+.floating-shape {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.1;
+    animation: float 6s ease-in-out infinite;
+}
+
+.shape-1 {
+    width: 300px;
+    height: 300px;
+    background: white;
+    top: 10%;
+    left: 5%;
+    animation-delay: 0s;
+}
+.shape-2 {
+    width: 200px;
+    height: 200px;
+    background: white;
+    top: 60%;
+    right: 10%;
+    animation-delay: 1s;
+}
+.shape-3 {
+    width: 150px;
+    height: 150px;
+    background: white;
+    bottom: 20%;
+    left: 15%;
+    animation-delay: 2s;
+}
+.shape-4 {
+    width: 100px;
+    height: 100px;
+    background: var(--accent);
+    top: 30%;
+    right: 30%;
+    animation-delay: 3s;
+}
+
+/* CTA Button Breathing Animation */
+@keyframes breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+.cta-button {
+    animation: breathe 2s ease-in-out infinite;
+}
+
+/* Fade In Up Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.fade-in-up {
+    animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.delay-200 { animation-delay: 0.2s; opacity: 0; }
+.delay-400 { animation-delay: 0.4s; opacity: 0; }
+
+/* Particle Animation */
+@keyframes particleFloat {
+    0%, 100% {
+        transform: translateY(0) translateX(0);
+        opacity: 0.3;
+    }
+    50% {
+        transform: translateY(-100px) translateX(20px);
+        opacity: 0.6;
+    }
+}
+.particle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: white;
+    border-radius: 50%;
+    animation: particleFloat 4s ease-in-out infinite;
+}
+.particle:nth-child(1) { left: 10%; animation-delay: 0s; }
+.particle:nth-child(2) { left: 25%; animation-delay: 0.5s; }
+.particle:nth-child(3) { left: 40%; animation-delay: 1s; }
+.particle:nth-child(4) { left: 55%; animation-delay: 1.5s; }
+.particle:nth-child(5) { left: 70%; animation-delay: 2s; }
+.particle:nth-child(6) { left: 85%; animation-delay: 2.5s; }
+.particle:nth-child(7) { left: 15%; animation-delay: 3s; }
+.particle:nth-child(8) { left: 60%; animation-delay: 3.5s; }
+
+/* Wave Animation for Journey Cards */
+@keyframes waveFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+.journey-card:nth-child(1) { animation: waveFloat 3s ease-in-out infinite; }
+.journey-card:nth-child(2) { animation: waveFloat 3s ease-in-out infinite 0.5s; }
+.journey-card:nth-child(3) { animation: waveFloat 3s ease-in-out infinite 1s; }
+.journey-card:nth-child(4) { animation: waveFloat 3s ease-in-out infinite 1.5s; }
+
+/* Testimonial Bob Animation */
+@keyframes testimonialBob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+.testimonial-card:nth-child(1) { animation: testimonialBob 4s ease-in-out infinite; }
+.testimonial-card:nth-child(2) { animation: testimonialBob 4s ease-in-out infinite 0.5s; }
+.testimonial-card:nth-child(3) { animation: testimonialBob 4s ease-in-out infinite 1s; }
+
+/* SVG Path Animation */
+@keyframes dash {
+    to { stroke-dashoffset: -100; }
+}
+.animate-dash {
+    animation: dash 3s linear infinite;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .shape-1, .shape-2, .shape-3, .shape-4 {
+        width: 100px;
+        height: 100px;
+    }
+}

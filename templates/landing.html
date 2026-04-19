@@ -1,0 +1,448 @@
+{% extends 'base-landing.html' %}
+
+{% block content %}
+<!-- Section 1: Navigation -->
+<nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <a href="/" class="text-2xl font-bold text-white">Placement Copilot</a>
+        <div class="hidden md:flex items-center gap-8">
+            <a href="#features" class="text-white/80 hover:text-white transition-colors">Features</a>
+            <a href="#journey" class="text-white/80 hover:text-white transition-colors">How It Works</a>
+            <a href="#testimonials" class="text-white/80 hover:text-white transition-colors">Testimonials</a>
+        </div>
+        <a href="{% url 'signup' %}" class="px-6 py-2 border-2 border-white text-white rounded-full hover:bg-white hover:text-purple-600 transition-all">
+            Get Started
+        </a>
+    </div>
+</nav>
+
+<!-- Section 2: Hero -->
+<section class="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-purple-600 to-purple-800">
+    <!-- Floating Shapes Background -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="floating-shape shape-1"></div>
+        <div class="floating-shape shape-2"></div>
+        <div class="floating-shape shape-3"></div>
+        <div class="floating-shape shape-4"></div>
+    </div>
+
+    <div class="relative z-10 text-center px-6 max-w-4xl mx-auto">
+        <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 fade-in-up">
+            Build a Resume That Stands Out
+        </h1>
+        <p class="text-xl md:text-2xl text-white/80 mb-10 fade-in-up delay-200">
+            Create a professional resume that tells your story — even if you have no experience yet.
+        </p>
+        <div class="fade-in-up delay-400">
+            <a href="{% url 'signup' %}" class="cta-button inline-block px-10 py-4 bg-coral text-white text-lg font-semibold rounded-full shadow-lg hover:scale-105 transition-transform">
+                Build a Resume That Stands Out
+            </a>
+        </div>
+        <p class="mt-8 text-white/60">
+            <a href="#journey" class="hover:text-white transition-colors">
+                See how it works ↓
+            </a>
+        </p>
+    </div>
+</section>
+
+<!-- Section 3: Journey Steps -->
+<section id="journey" class="py-24 bg-gradient-to-b from-purple-50 to-white">
+    <div class="max-w-7xl mx-auto px-6">
+        <h2 class="text-4xl font-bold text-center text-gray-800 mb-16">Your Journey to a Great Resume</h2>
+
+        <div class="relative">
+            <!-- SVG Path connecting steps -->
+            <svg class="hidden lg:block absolute top-1/2 left-0 w-full h-4 -translate-y-1/2" preserveAspectRatio="none">
+                <path d="M0,50 Q250,0 500,50 T1000,50 T1500,50 T2000,50" stroke="url(#pathGradient)" stroke-width="4" fill="none" stroke-dasharray="10,10" class="animate-dash"/>
+                <defs>
+                    <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#8B6BA9"/>
+                        <stop offset="100%" style="stop-color:#FF7F6B"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+                <!-- Step 1 -->
+                <div class="journey-card" data-step="1">
+                    <div class="bg-white rounded-3xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+                        <div class="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 text-center mb-3">Tell Your Story</h3>
+                        <p class="text-gray-600 text-center">Add your info and personal details</p>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="journey-card" data-step="2">
+                    <div class="bg-white rounded-3xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+                        <div class="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 text-center mb-3">Show Your Skills</h3>
+                        <p class="text-gray-600 text-center">Add education, projects, experience</p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="journey-card" data-step="3">
+                    <div class="bg-white rounded-3xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+                        <div class="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 text-center mb-3">Preview & Polish</h3>
+                        <p class="text-gray-600 text-center">See your resume come to life</p>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="journey-card" data-step="4">
+                    <div class="bg-white rounded-3xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+                        <div class="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 text-center mb-3">Download & Go</h3>
+                        <p class="text-gray-600 text-center">Get a resume ready for applications</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: Testimonials -->
+<section id="testimonials" class="py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-6">
+        <h2 class="text-4xl font-bold text-center text-gray-800 mb-16">Students Love It</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Testimonial 1 -->
+            <div class="testimonial-card" data-index="1">
+                <div class="bg-cream rounded-3xl p-8 relative">
+                    <div class="absolute -top-4 left-8 w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+                        <span class="text-2xl">👩</span>
+                    </div>
+                    <p class="text-gray-700 text-lg mt-8 mb-6">"I had zero experience and was terrified to start. This made it so easy!"</p>
+                    <p class="font-semibold text-purple-600">Priya S.</p>
+                    <p class="text-gray-500 text-sm">Recent Graduate</p>
+                </div>
+            </div>
+
+            <!-- Testimonial 2 -->
+            <div class="testimonial-card" data-index="2">
+                <div class="bg-cream rounded-3xl p-8 relative">
+                    <div class="absolute -top-4 left-8 w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+                        <span class="text-2xl">👨</span>
+                    </div>
+                    <p class="text-gray-700 text-lg mt-8 mb-6">"Built my first resume in 15 minutes. Actually felt proud of it!"</p>
+                    <p class="font-semibold text-purple-600">Rahul M.</p>
+                    <p class="text-gray-500 text-sm">Final Year Student</p>
+                </div>
+            </div>
+
+            <!-- Testimonial 3 -->
+            <div class="testimonial-card" data-index="3">
+                <div class="bg-cream rounded-3xl p-8 relative">
+                    <div class="absolute -top-4 left-8 w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+                        <span class="text-2xl">👩</span>
+                    </div>
+                    <p class="text-gray-700 text-lg mt-8 mb-6">"Finally a resume builder that doesn't make you feel inadequate."</p>
+                    <p class="font-semibold text-purple-600">Sneha K.</p>
+                    <p class="text-gray-500 text-sm">First-Time Job Seeker</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 5: Why Choose Us -->
+<section id="features" class="py-24 bg-gradient-to-b from-white to-purple-50">
+    <div class="max-w-7xl mx-auto px-6">
+        <h2 class="text-4xl font-bold text-center text-gray-800 mb-16">Why Choose Us</h2>
+
+        <div class="flex flex-wrap justify-center gap-8">
+            <!-- Feature 1 -->
+            <div class="feature-badge" data-feature="1">
+                <div class="bg-soft-lavender rounded-full px-8 py-6 flex items-center gap-4 hover:bg-coral group transition-colors">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                        <span class="text-2xl">💚</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-800 group-hover:text-white transition-colors">No Experience Needed</h3>
+                        <p class="text-gray-600 group-hover:text-white/80 text-sm transition-colors">We've been there. Start from zero.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="feature-badge" data-feature="2">
+                <div class="bg-soft-lavender rounded-full px-8 py-6 flex items-center gap-4 hover:bg-coral group transition-colors">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                        <span class="text-2xl">⚡</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-800 group-hover:text-white transition-colors">Quick & Easy</h3>
+                        <p class="text-gray-600 group-hover:text-white/80 text-sm transition-colors">15 minutes to a professional resume.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="feature-badge" data-feature="3">
+                <div class="bg-soft-lavender rounded-full px-8 py-6 flex items-center gap-4 hover:bg-coral group transition-colors">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                        <span class="text-2xl">🎁</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-800 group-hover:text-white transition-colors">Always Free</h3>
+                        <p class="text-gray-600 group-hover:text-white/80 text-sm transition-colors">No hidden costs, ever.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 6: Pricing -->
+<section id="pricing" class="py-24 bg-gradient-to-b from-purple-50 to-white">
+    <div class="max-w-7xl mx-auto px-6">
+        <h2 class="text-4xl font-bold text-center text-gray-800 mb-4">Simple, Transparent Pricing</h2>
+        <p class="text-center text-gray-500 mb-16 text-lg">Start free. Upgrade when you're ready.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <!-- Free Tier -->
+            <div class="bg-white rounded-3xl p-8 shadow-md border border-gray-100 flex flex-col">
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Free</h3>
+                <p class="text-gray-500 text-sm mb-6">For students getting started</p>
+                <div class="mb-6">
+                    <span class="text-4xl font-bold text-gray-900">$0</span>
+                    <span class="text-gray-500">/month</span>
+                </div>
+                <ul class="space-y-3 mb-8 flex-1">
+                    <li class="flex items-center gap-2 text-gray-600 text-sm">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        1 resume
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-600 text-sm">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        3 templates
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-600 text-sm">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        PDF export
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-400 text-sm">
+                        <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        Custom domain
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-400 text-sm">
+                        <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        Priority support
+                    </li>
+                </ul>
+                <a href="{% url 'signup' %}" class="block text-center px-6 py-3 border-2 border-purple-600 text-purple-600 rounded-full font-semibold hover:bg-purple-50 transition-colors">
+                    Get Started Free
+                </a>
+            </div>
+
+            <!-- Pro Tier -->
+            <div class="bg-white rounded-3xl p-8 shadow-xl border-2 border-purple-500 flex flex-col relative">
+                <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wide">
+                    Most Popular
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Pro</h3>
+                <p class="text-gray-500 text-sm mb-6">For serious job seekers</p>
+                <div class="mb-6">
+                    <span class="text-4xl font-bold text-gray-900">$9.99</span>
+                    <span class="text-gray-500">/month</span>
+                </div>
+                <ul class="space-y-3 mb-8 flex-1">
+                    <li class="flex items-center gap-2 text-gray-600 text-sm">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        5 resumes
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-600 text-sm">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        All templates
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-600 text-sm">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        PDF + Word export
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-600 text-sm">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        Email support
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-400 text-sm">
+                        <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        Custom domain
+                    </li>
+                </ul>
+                <a href="{% url 'signup' %}" class="block text-center px-6 py-3 bg-purple-600 text-white rounded-full font-semibold hover:bg-purple-700 transition-colors">
+                    Upgrade to Pro
+                </a>
+            </div>
+
+            <!-- Premium Tier -->
+            <div class="bg-white rounded-3xl p-8 shadow-md border border-gray-100 flex flex-col">
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Premium</h3>
+                <p class="text-gray-500 text-sm mb-6">For career professionals</p>
+                <div class="mb-6">
+                    <span class="text-4xl font-bold text-gray-900">$19.99</span>
+                    <span class="text-gray-500">/month</span>
+                </div>
+                <ul class="space-y-3 mb-8 flex-1">
+                    <li class="flex items-center gap-2 text-gray-600 text-sm">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        Unlimited resumes
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-600 text-sm">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        All templates + exclusive
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-600 text-sm">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        PDF + Word + HTML export
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-600 text-sm">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        Priority support
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-600 text-sm">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        Custom domain
+                    </li>
+                </ul>
+                <a href="{% url 'signup' %}" class="block text-center px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-full font-semibold hover:bg-gray-50 transition-colors">
+                    Upgrade to Premium
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 7: FAQ -->
+<section id="faq" class="py-24 bg-white">
+    <div class="max-w-3xl mx-auto px-6">
+        <h2 class="text-4xl font-bold text-center text-gray-800 mb-4">Frequently Asked Questions</h2>
+        <p class="text-center text-gray-500 mb-16 text-lg">Got questions? We've got answers.</p>
+
+        <div class="space-y-4">
+            <details class="faq-item bg-purple-50 rounded-2xl group">
+                <summary class="px-6 py-5 cursor-pointer list-none flex justify-between items-center font-semibold text-gray-800 hover:text-purple-700">
+                    Is Placement Copilot really free?
+                    <svg class="w-5 h-5 text-purple-600 transform transition-transform group-open:rotate-180 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="px-6 pb-5 text-gray-600 leading-relaxed">
+                    Yes! The Free tier is completely free forever. You can create one resume with all basic templates at no cost. We believe everyone deserves a professional resume, regardless of their budget.
+                </div>
+            </details>
+
+            <details class="faq-item bg-purple-50 rounded-2xl group">
+                <summary class="px-6 py-5 cursor-pointer list-none flex justify-between items-center font-semibold text-gray-800 hover:text-purple-700">
+                    Do I need design skills to use it?
+                    <svg class="w-5 h-5 text-purple-600 transform transition-transform group-open:rotate-180 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="px-6 pb-5 text-gray-600 leading-relaxed">
+                    Not at all. Placement Copilot is designed for people with zero design experience. Just fill in your information, pick a template, and we'll handle the formatting and layout automatically.
+                </div>
+            </details>
+
+            <details class="faq-item bg-purple-50 rounded-2xl group">
+                <summary class="px-6 py-5 cursor-pointer list-none flex justify-between items-center font-semibold text-gray-800 hover:text-purple-700">
+                    Can I download my resume as a PDF?
+                    <svg class="w-5 h-5 text-purple-600 transform transition-transform group-open:rotate-180 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="px-6 pb-5 text-gray-600 leading-relaxed">
+                    Absolutely. Every tier includes PDF export. Pro and Premium users also get Word (.docx) and HTML export options. Your resume is yours to download and submit anywhere.
+                </div>
+            </details>
+
+            <details class="faq-item bg-purple-50 rounded-2xl group">
+                <summary class="px-6 py-5 cursor-pointer list-none flex justify-between items-center font-semibold text-gray-800 hover:text-purple-700">
+                    What templates are available?
+                    <svg class="w-5 h-5 text-purple-600 transform transition-transform group-open:rotate-180 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="px-6 pb-5 text-gray-600 leading-relaxed">
+                    We offer three professionally designed templates: Classic, Modern, and Minimal. Pro and Premium users get access to additional exclusive templates with unique layouts and color schemes.
+                </div>
+            </details>
+
+            <details class="faq-item bg-purple-50 rounded-2xl group">
+                <summary class="px-6 py-5 cursor-pointer list-none flex justify-between items-center font-semibold text-gray-800 hover:text-purple-700">
+                    Can I cancel my subscription anytime?
+                    <svg class="w-5 h-5 text-purple-600 transform transition-transform group-open:rotate-180 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="px-6 pb-5 text-gray-600 leading-relaxed">
+                    Yes, you can cancel your subscription at any time from your account settings. Your existing resumes and data will remain accessible on the Free tier. No long-term commitments or cancellation fees.
+                </div>
+            </details>
+
+            <details class="faq-item bg-purple-50 rounded-2xl group">
+                <summary class="px-6 py-5 cursor-pointer list-none flex justify-between items-center font-semibold text-gray-800 hover:text-purple-700">
+                    Is my data secure?
+                    <svg class="w-5 h-5 text-purple-600 transform transition-transform group-open:rotate-180 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="px-6 pb-5 text-gray-600 leading-relaxed">
+                    Your data is stored securely and encrypted at rest. We never sell or share your personal information. You can delete your account and all associated data at any time from your settings.
+                </div>
+            </details>
+        </div>
+    </div>
+</section>
+
+<!-- Section 8: Final CTA -->
+<section class="py-24 bg-gradient-to-br from-purple-600 to-purple-800 relative overflow-hidden">
+    <!-- Particle Background -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <div class="relative z-10 max-w-3xl mx-auto text-center px-6">
+        <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">Ready to Build Your Story?</h2>
+        <p class="text-xl text-white/80 mb-10">Join thousands of students who created their resume with Placement Copilot.</p>
+        <a href="{% url 'signup' %}" class="inline-block px-12 py-5 bg-coral text-white text-xl font-bold rounded-full shadow-lg hover:scale-105 transition-transform">
+            Build a Resume That Stands Out
+        </a>
+    </div>
+</section>
+
+<!-- Section 7: Footer -->
+<footer class="bg-gray-900 text-white py-12">
+    <div class="max-w-7xl mx-auto px-6">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="text-center md:text-left">
+                <p class="text-2xl font-bold mb-2">Placement Copilot</p>
+                <p class="text-gray-400">Made with ❤️ for job seekers.</p>
+            </div>
+            <div class="flex gap-6 text-gray-400">
+                <a href="#" class="hover:text-white transition-colors">Privacy</a>
+                <a href="#" class="hover:text-white transition-colors">Terms</a>
+                <a href="#" class="hover:text-white transition-colors">Contact</a>
+            </div>
+        </div>
+        <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
+            © 2026 Placement Copilot. All rights reserved.
+        </div>
+    </div>
+</footer>
+
+{% endblock %}

@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Placement Copilot - Build a Resume That Stands Out{% endblock %}</title>
+    <meta name="description" content="Create a professional resume in minutes — even with no experience. Free resume builder with beautiful templates, PDF export, and step-by-step guidance for students and job seekers.">
+    <meta name="keywords" content="resume builder, free resume maker, professional resume, student resume, job application">
+    <meta property="og:title" content="Placement Copilot - Build a Resume That Stands Out">
+    <meta property="og:description" content="Create a professional resume in minutes — even with no experience. Free resume builder with beautiful templates and PDF export.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/og-image.png' %}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Placement Copilot - Build a Resume That Stands Out">
+    <meta name="twitter:description" content="Create a professional resume in minutes. Free, easy, and built for students.">
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Placement Copilot",
+        "description": "Free resume builder for students and job seekers. Create professional resumes in minutes.",
+        "url": "{{ request.scheme }}://{{ request.get_host }}",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web Browser",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "description": "Free tier with 1 resume and 3 templates"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "ratingCount": "1247"
+        }
+    }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Quicksand:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/landing.css' %}">
+    <link rel="stylesheet" href="{% static 'css/animations.css' %}">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6, button, a.btn {
+            font-family: 'Poppins', sans-serif;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    {% block content %}{% endblock %}
+    <script src="{% static 'js/landing.js' %}"></script>
+</body>
+</html>

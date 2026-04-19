@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Welcome - Placement Copilot{% endblock %}
+
+{% block content %}
+{% with first_name=request.user.first_name|default:"there" %}
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div class="max-w-lg w-full space-y-8 text-center">
+        <!-- Logo/Icon -->
+        <div class="flex justify-center">
+            <div class="w-24 h-24 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Welcome Text -->
+        <div>
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">
+                Welcome, {{ first_name }}!
+            </h1>
+            <p class="text-xl text-gray-600 mb-2">
+                Create professional resumes that help you stand out
+            </p>
+            <p class="text-gray-500">
+                Build, manage, and export your resume in minutes
+            </p>
+        </div>
+
+        <!-- Features -->
+        <div class="grid grid-cols-3 gap-4 py-6">
+            <div class="text-center">
+                <div class="w-12 h-12 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-2">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                </div>
+                <p class="text-sm font-medium text-gray-700">Easy Builder</p>
+            </div>
+            <div class="text-center">
+                <div class="w-12 h-12 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-2">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <p class="text-sm font-medium text-gray-700">Save & Edit</p>
+            </div>
+            <div class="text-center">
+                <div class="w-12 h-12 mx-auto bg-purple-100 rounded-full flex items-center justify-center mb-2">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                </div>
+                <p class="text-sm font-medium text-gray-700">Export PDF</p>
+            </div>
+        </div>
+
+        <!-- CTA Buttons -->
+        <div class="space-y-4">
+            <a href="{% url 'resume_create' %}" class="w-full flex items-center justify-center px-8 py-4 border border-transparent text-lg font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-lg">
+                Create Your First Resume
+                <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="{% url 'onboarding_skip' %}" class="text-gray-500 hover:text-gray-700 text-sm">
+                Skip for now
+            </a>
+        </div>
+    </div>
+</div>
+{% endwith %}
+{% endblock %}
