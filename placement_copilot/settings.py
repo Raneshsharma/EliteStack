@@ -77,8 +77,24 @@ WSGI_APPLICATION = 'placement_copilot.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Use SQLite for local development, PostgreSQL for production
-if os.getenv('DATABASE_ENGINE', 'sqlite') == 'postgresql':
+# Use DATABASE_URL (Render injects this when a PostgreSQL DB is connected to the same environment)
+# Fall back to individual vars, then to SQLite for local dev
+_database_url = os.getenv('DATABASE_URL', '')
+if _database_url:
+    # Parse DATABASE_URL (e.g. postgres://user:pass@host:port/dbname)
+    import urllib.parse
+    parsed = urllib.parse.urlparse(_database_url)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': parsed.path.lstrip('/'),
+            'USER': parsed.username,
+            'PASSWORD': parsed.password,
+            'HOST': parsed.hostname,
+            'PORT': str(parsed.port) if parsed.port else '5432',
+        }
+    }
+elif os.getenv('DATABASE_ENGINE', 'sqlite') == 'postgresql':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
